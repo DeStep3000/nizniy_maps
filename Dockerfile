@@ -1,26 +1,25 @@
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS python3
+FROM python:3.12-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libgeos-dev \
-    curl
-
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
 
-ENV UV_COMPILE_BYTECODE=1
-ENV UV_LINK_MODE=copy
+# Устанавливаем uv
+RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir uv
 
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --no-dev
+# Создаём и активируем виртуальное окружение для всего образа
+RUN uv venv /opt/venv
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-ADD . /app
+# Устанавливаем torch CPU-only 2.9.0
+RUN uv pip install "torch==2.9.0" --index-url https://download.pytorch.org/whl/cpu
 
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+# Остальные зависимости
+COPY requirements.txt ./
+RUN uv pip install --no-cache-dir -r requirements.txt
+
+# Код приложения
+COPY . /app
 
 EXPOSE 8501
-
-ENV PATH="/app/.venv/bin:$PATH"
-CMD ["uv", "run", "streamlit", "run", "main.py"]
+CMD ["uv", "run", "streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
