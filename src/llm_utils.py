@@ -10,12 +10,7 @@ def load_llm():
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForCausalLM.from_pretrained(model_name)
         generator = pipeline(
-            "text-generation",
-            model=model,
-            tokenizer=tokenizer,
-            device=-1,
-            dtype=torch.float32,
-            truncation=True
+            "text-generation", model=model, tokenizer=tokenizer, device=-1, dtype=torch.float32, truncation=True
         )
         return generator
     except Exception as e:
@@ -30,7 +25,7 @@ def generate_enhanced_fallback_explanation(route, selected_cats_names, total_tim
 
     category_counts = {}
     for point in route:
-        cat_id = point['object']['category_id']
+        cat_id = point["object"]["category_id"]
         category_counts[cat_id] = category_counts.get(cat_id, 0) + 1
 
     main_categories = []
@@ -38,11 +33,11 @@ def generate_enhanced_fallback_explanation(route, selected_cats_names, total_tim
         cat_name = categories_dict.get(cat_id, "Другое")
         main_categories.append(f"{cat_name} ({count} объектов)")
 
-    total_distance = sum(point['distance'] for point in route)
+    total_distance = sum(point["distance"] for point in route)
     avg_time_per_object = total_time / len(route) if route else 0
 
     explanation = f"Этот маршрут идеально соответствует вашим интересам в {', '.join(selected_cats_names)}. "
-    explanation += f"За {total_time} минут вы посетите {len(route)} ключевых достопримечательностей, начиная от '{route[0]['object']['title']}' "
+    explanation += f"За {total_time} минут вы посетите {len(route)} ключевых достопримечательностей, начиная от '{route[0]['object']['title']}' "  # noqa: E501
 
     if len(route) > 1:
         explanation += f"и заканчивая '{route[-1]['object']['title']}'. "
@@ -58,28 +53,26 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
     total_travel_time = 0
     total_visit_time = 0
     for point in route:
-        total_travel_time += point['travel_time']
-        total_visit_time += point['visit_time']
+        total_travel_time += point["travel_time"]
+        total_visit_time += point["visit_time"]
 
     object_descriptions = []
     for i, point in enumerate(route):
-        obj = point['object']
-        category_name = categories_dict.get(obj['category_id'], 'Другое')
-        short_description = obj['description'][:100] + \
-            "..." if len(obj['description']) > 100 else obj['description']
-        object_descriptions.append(
-            f"{i + 1}. {obj['title']} ({category_name}): {short_description}")
+        obj = point["object"]
+        category_name = categories_dict.get(obj["category_id"], "Другое")
+        short_description = obj["description"][:100] + "..." if len(obj["description"]) > 100 else obj["description"]
+        object_descriptions.append(f"{i + 1}. {obj['title']} ({category_name}): {short_description}")
 
     descriptions_text = "\n".join(object_descriptions)
-    selected_cats_names = [categories_dict.get(
-        cat_id, "Другое") for cat_id in selected_categories]
+    selected_cats_names = [categories_dict.get(cat_id, "Другое") for cat_id in selected_categories]
 
     prompt = f"""
-Я создал культурный маршрут по Нижнему Новгороду для туриста. Пожалуйста, создай краткое и увлекательное объяснение этого маршрута.
+Я создал культурный маршрут по Нижнему Новгороду для туриста.
+Пожалуйста, создай краткое и увлекательное объяснение этого маршрута.
 
 Информация о маршруте:
 - Начальная точка: {start_position}
-- Выбранные категории интересов: {', '.join(selected_cats_names)}
+- Выбранные категории интересов: {", ".join(selected_cats_names)}
 - Общее время маршрута: {total_time} минут
 - Количество объектов: {len(route)}
 - Общее время в пути: {total_travel_time:.1f} минут
@@ -88,14 +81,17 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
 Объекты маршрута по порядку:
 {descriptions_text}
 
-Пожалуйста, объясни логику построения этого маршрута, почему выбраны именно эти объекты и в таком порядке, как они связаны с интересами пользователя. Сделай объяснение кратким (3-4 предложения), информативным и мотивирующим.
+Пожалуйста, объясни логику построения этого маршрута, почему выбраны именно эти объекты и в таком порядке,
+как они связаны с интересами пользователя. Сделай объяснение кратким (3-4 предложения), информативным и мотивирующим.
 
 Объяснение:
 """
 
     generator = load_llm()
     if generator is None:
-        return generate_enhanced_fallback_explanation(route, selected_cats_names, total_time, categories_dict, start_position)
+        return generate_enhanced_fallback_explanation(
+            route, selected_cats_names, total_time, categories_dict, start_position
+        )
 
     try:
         response = generator(
@@ -106,12 +102,14 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
             do_sample=True,
             pad_token_id=generator.tokenizer.eos_token_id,
             repetition_penalty=1.3,
-            no_repeat_ngram_size=2
+            no_repeat_ngram_size=2,
         )
-        explanation = response[0]['generated_text']
+        explanation = response[0]["generated_text"]
         if explanation.startswith(prompt):
-            explanation = explanation[len(prompt):].strip()
+            explanation = explanation[len(prompt) :].strip()
         return explanation
     except Exception as e:
         st.error(f"Ошибка генерации объяснения: {e}")
-        return generate_enhanced_fallback_explanation(route, selected_cats_names, total_time, categories_dict, start_position)
+        return generate_enhanced_fallback_explanation(
+            route, selected_cats_names, total_time, categories_dict, start_position
+        )

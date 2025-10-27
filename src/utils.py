@@ -4,8 +4,8 @@ def generate_yandex_maps_url(route, start_position):
 
     points = [start_position]
     for point in route:
-        obj = point['object']
-        points.append((obj['lat'], obj['lon']))
+        obj = point["object"]
+        points.append((obj["lat"], obj["lon"]))
 
     points_str = [f"{lat},{lon}" for (lat, lon) in points]
     route_points = "~".join(points_str)
