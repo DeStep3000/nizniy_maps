@@ -3,7 +3,7 @@ import re
 import pandas as pd
 import streamlit as st
 
-from constants import FILE_PATH
+from .constants import FILE_PATH
 
 
 @st.cache_data(show_spinner=False)

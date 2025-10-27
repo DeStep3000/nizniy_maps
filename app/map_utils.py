@@ -1,7 +1,8 @@
 import folium
 import pandas as pd
-from constants import CATEGORIES as categories
-from constants import CATEGORY_COLORS as category_colors
+
+from .constants import CATEGORIES as categories
+from .constants import CATEGORY_COLORS as category_colors
 
 
 def create_interactive_map(df, selected_categories, center_lat, center_lon, search_radius, start_position=None, route=None):
