@@ -27,7 +27,7 @@ jobs:
           script: |
             set -euo pipefail
 
-            DEPLOY_DIR="${{ vars.DEPLOY_DIR:-/var/www/u3310543/data/nizniy_maps }}"
+            DEPLOY_DIR="${{ vars.DEPLOY_DIR }}"
 
             echo "Deploying to: $DEPLOY_DIR"
             cd "$DEPLOY_DIR"
