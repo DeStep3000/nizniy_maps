@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    container_name: nizhny_maps
+    ports:
+      - "8501:8501"
+    environment:
+      - TZ=Europe/Moscow
+    volumes:
+      - ./data_:/app/data_

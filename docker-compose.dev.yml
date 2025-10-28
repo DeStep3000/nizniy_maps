@@ -1,0 +1,24 @@
+services:
+  app:
+    container_name: nizhny_maps_dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app
+    volumes:
+      - .:/app
+      - uv_cache:/root/.cache/uv
+    ports:
+      - "8501:8501"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TZ=Europe/Moscow
+    command: >
+      bash -lc "
+        uv pip install --index-url https://download.pytorch.org/whl/cpu torch==2.9.0 &&
+        if [ -f requirements.txt ]; then uv pip install --no-cache-dir -r requirements.txt; fi &&
+        uv run streamlit run main.py --server.port=8501 --server.address=0.0.0.0 --server.runOnSave true
+      "
+
+volumes:
+  uv_cache:
