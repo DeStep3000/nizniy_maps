@@ -10,7 +10,7 @@ def create_interactive_map(
 ):
     filtered_df = df[df["category_id"].isin(selected_categories)] if selected_categories else df
 
-    m = folium.Map(location=[center_lat, center_lon], zoom_start=14)
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=14, attribution_control=False)
 
     if start_position:
         folium.Marker(
@@ -61,3 +61,32 @@ def create_interactive_map(
         ).add_to(m)
 
     return m
+
+
+def get_geolocation_component():
+    components.html("""
+    <script>
+    function sendLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    window.parent.postMessage({
+                        type: 'streamlit:setComponentValue',
+                        value: {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude
+                        }
+                    }, '*');
+                },
+                function(error) {
+                    window.parent.postMessage({
+                        type: 'streamlit:setComponentValue',
+                        value: null
+                    }, '*');
+                }
+            );
+        }
+    }
+    sendLocation();
+    </script>
+    """, height=0)
