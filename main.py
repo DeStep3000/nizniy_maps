@@ -67,7 +67,6 @@ def main():  # noqa: C901
 
     if st.sidebar.checkbox("Использовать мое местоположение"):
         loc = get_geolocation()
-        print(loc)
         if loc and 'coords' in loc:
             st.session_state.start_position = (loc['coords']['latitude'], loc['coords']['longitude'])
             st.session_state.route_built = False
@@ -84,6 +83,7 @@ def main():  # noqa: C901
         if not selected_categories:
             st.sidebar.error("Пожалуйста, выберите хотя бы одну категорию!")
         else:
+            st.write("Маршрут строится!")
             # Спиннеры в UI можно оставить (по желанию),
             # но спиннер при хэшировании кэша/ресурсов отключён в декораторах cache_*.
             route = plan_route(st.session_state.start_position, selected_categories, total_time, df)
