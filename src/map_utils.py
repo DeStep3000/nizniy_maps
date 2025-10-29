@@ -26,7 +26,7 @@ def create_interactive_map(
 ):
     filtered_df = df[df["category_id"].isin(selected_categories)] if selected_categories else df
 
-    m = folium.Map(location=[center_lat, center_lon], zoom_start=14)
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=14, attribution_control=False)
 
     if start_position:
         folium.Marker(
