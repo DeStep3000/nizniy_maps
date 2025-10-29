@@ -1,0 +1,43 @@
+name: "Nizhny Maps"
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "📂 Checkout (metadata only)"
+        uses: actions/checkout@v4
+
+      - name: "🔐 SSH deploy (no port specified)"
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            DEPLOY_DIR="${{ vars.DEPLOY_DIR }}"
+
+            echo "Deploying to: $DEPLOY_DIR"
+            cd "$DEPLOY_DIR"
+
+            # --- Обновляем код до последнего коммита main ---
+            git fetch --all --prune
+            git checkout main
+            git reset --hard origin/main
+
+            # --- Пересобираем через Makefile ---
+            make rebuild
+
+            echo "✅ Deploy finished."

@@ -1,8 +1,24 @@
 import folium
 import pandas as pd
+import requests
+from functools import lru_cache
 
 from src.constants import CATEGORIES as categories
 from src.constants import CATEGORY_COLORS as category_colors
+
+@lru_cache(maxsize=512)
+def _fetch_osrm_route(a, b, profile: str = "foot"):
+    base = "https://router.project-osrm.org/route/v1"
+    url = f"{base}/{profile}/{a[1]},{a[0]};{b[1]},{b[0]}?overview=full&geometries=geojson"
+    try:
+        r = requests.get(url, timeout=6)
+        r.raise_for_status()
+        data = r.json()
+        coords = data["routes"][0]["geometry"]["coordinates"]
+        return [(lat, lon) for lon, lat in coords]
+    except Exception as e:
+        print(f"OSRM route fetch failed: {e}")
+        return []
 
 
 def create_interactive_map(
@@ -10,7 +26,7 @@ def create_interactive_map(
 ):
     filtered_df = df[df["category_id"].isin(selected_categories)] if selected_categories else df
 
-    m = folium.Map(location=[center_lat, center_lon], zoom_start=14)
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=14, attribution_control=False)
 
     if start_position:
         folium.Marker(
@@ -21,17 +37,35 @@ def create_interactive_map(
         ).add_to(m)
 
     if route:
-        route_coords = [start_position] if start_position else []
+        path_coords = []
+        prev = start_position if start_position else (route[0]["object"]["lat"], route[0]["object"]["lon"])
+
         for point in route:
             obj = point["object"]
-            route_coords.append([obj["lat"], obj["lon"]])
+            nxt = (obj["lat"], obj["lon"])
+            try:
+                seg = _fetch_osrm_route(prev, nxt, profile="foot")
+                # чтобы не дублировать стыковочные точки
+                if path_coords and seg:
+                    path_coords.extend(seg[1:])
+                else:
+                    path_coords.extend(seg)
+            except Exception:
+                path_coords.extend([prev, nxt])
+            prev = nxt
 
-        folium.PolyLine(route_coords, color="blue", weight=4, opacity=0.7, popup="Маршрут прогулки").add_to(m)
+        if path_coords:
+            folium.PolyLine(
+                path_coords,
+                color="#9b59b6",
+                weight=5,
+                opacity=0.8,
+                popup="Пешеходный маршрут",
+            ).add_to(m)
 
     for _, row in filtered_df.iterrows():
         if pd.isna(row["lat"]) or pd.isna(row["lon"]):
             continue
-
         color = category_colors.get(row["category_id"], "gray")
         category_name = categories.get(row["category_id"], "Другое")
 
