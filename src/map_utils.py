@@ -61,32 +61,3 @@ def create_interactive_map(
         ).add_to(m)
 
     return m
-
-
-def get_geolocation_component():
-    components.html("""
-    <script>
-    function sendLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    window.parent.postMessage({
-                        type: 'streamlit:setComponentValue',
-                        value: {
-                            latitude: position.coords.latitude,
-                            longitude: position.coords.longitude
-                        }
-                    }, '*');
-                },
-                function(error) {
-                    window.parent.postMessage({
-                        type: 'streamlit:setComponentValue',
-                        value: null
-                    }, '*');
-                }
-            );
-        }
-    }
-    sendLocation();
-    </script>
-    """, height=0)
