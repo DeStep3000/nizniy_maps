@@ -2,6 +2,7 @@ from datetime import datetime
 
 import streamlit as st
 from streamlit_folium import st_folium
+from streamlit_js_eval import get_geolocation
 
 from src.constants import CATEGORIES as categories
 from src.data_loader import load_data
@@ -64,6 +65,12 @@ def main():  # noqa: C901
         st.session_state.route_built = False
         st.rerun()
 
+    if st.sidebar.checkbox("Использовать мое местоположение"):
+        loc = get_geolocation()
+        if loc and 'coords' in loc:
+            st.session_state.start_position = (loc['coords']['latitude'], loc['coords']['longitude'])
+            st.session_state.route_built = False
+
     st.sidebar.info(
         f"📍 Текущая точка старта:\n{st.session_state.start_position[0]:.6f}, {st.session_state.start_position[1]:.6f}"
     )
@@ -76,6 +83,7 @@ def main():  # noqa: C901
         if not selected_categories:
             st.sidebar.error("Пожалуйста, выберите хотя бы одну категорию!")
         else:
+            st.write("Маршрут строится!")
             # Спиннеры в UI можно оставить (по желанию),
             # но спиннер при хэшировании кэша/ресурсов отключён в декораторах cache_*.
             route = plan_route(st.session_state.start_position, selected_categories, total_time, df)
