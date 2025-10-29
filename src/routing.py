@@ -1,4 +1,5 @@
 import pandas as pd
+import random
 from geopy.distance import geodesic
 
 
@@ -31,17 +32,16 @@ def calculate_score(object_data, user_categories, current_position, max_distance
     return score, distance, visit_time
 
 
-def plan_route(start_position, user_categories, total_time_minutes, df):
+def plan_route(start_position, user_categories, total_time_minutes, df, top_k=3):
+    rng = random.Random()
+
     current_position = start_position
     remaining_time = total_time_minutes
     route = []
     visited_ids = set()
 
     while remaining_time > 20:
-        best_score = 0
-        best_object = None
-        best_distance = 0
-        best_visit_time = 0
+        candidates = []
 
         for _, obj in df.iterrows():
             if obj["id"] in visited_ids:
@@ -49,28 +49,34 @@ def plan_route(start_position, user_categories, total_time_minutes, df):
 
             score, distance, visit_time = calculate_score(obj, user_categories, current_position)
             travel_time = calculate_walking_time(distance)
-            total_obj_time = travel_time + visit_time
 
-            if score > best_score and total_obj_time <= remaining_time:
-                best_score = score
-                best_object = obj
-                best_distance = distance
-                best_visit_time = visit_time
+            if travel_time + visit_time <= remaining_time:
+                candidates.append({
+                    "object": obj,
+                    "score": score,
+                    "distance": distance,
+                    "visit_time": visit_time,
+                    "travel_time": travel_time,
+                })
 
-        if best_object is None:
+        if not candidates:
             break
 
-        travel_time = calculate_walking_time(best_distance)
+        candidates.sort(key=lambda x: x["score"], reverse=True)
+        pool = candidates[: max(1, top_k)]
+
+        chosen = rng.choice(pool)
+
         route.append({
-            "object": best_object,
-            "travel_time": travel_time,
-            "visit_time": best_visit_time,
-            "distance": best_distance,
+            "object": chosen["object"],
+            "travel_time": chosen["travel_time"],
+            "visit_time": chosen["visit_time"],
+            "distance": chosen["distance"],
         })
 
-        visited_ids.add(best_object["id"])
-        current_position = (best_object["lat"], best_object["lon"])
-        remaining_time -= travel_time + best_visit_time
+        visited_ids.add(chosen["object"]["id"])
+        current_position = (chosen["object"]["lat"], chosen["object"]["lon"])
+        remaining_time -= chosen["travel_time"] + chosen["visit_time"]
 
     return route
 
