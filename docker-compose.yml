@@ -8,3 +8,22 @@ services:
       - TZ=Europe/Moscow
     volumes:
       - ./data_:/app/data_
+
+  caddy:
+    image: caddy:2
+    container_name: web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - TZ=Europe/Moscow
+    depends_on:
+      - app
+
+volumes:
+  caddy_data:
+  caddy_config:
