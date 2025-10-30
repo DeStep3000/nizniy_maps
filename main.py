@@ -154,28 +154,30 @@ def main():  # noqa: C901
             "**💡 Подсказка:** Кликните один раз на карте, чтобы установить собственную точку старта. Выбранные категории отображаются сразу."
         )
 
-        map_obj = create_interactive_map(
-            df,
-            selected_categories,
-            st.session_state.start_position[0],
-            st.session_state.start_position[1],
-            search_radius,
-            st.session_state.start_position,
-            st.session_state.current_route if st.session_state.route_built else None,
-        )
+        with st.spinner("Строим маршрут..."):
 
-        map_data = st_folium(map_obj, width=700, height=500, returned_objects=["last_clicked"])
+            map_obj = create_interactive_map(
+                df,
+                selected_categories,
+                st.session_state.start_position[0],
+                st.session_state.start_position[1],
+                search_radius,
+                st.session_state.start_position,
+                st.session_state.current_route if st.session_state.route_built else None,
+            )
 
-        if map_data and map_data.get("last_clicked"):
-            clicked_lat = map_data["last_clicked"]["lat"]
-            clicked_lon = map_data["last_clicked"]["lng"]
+            map_data = st_folium(map_obj, width=700, height=500, returned_objects=["last_clicked"])
 
-            if (clicked_lat, clicked_lon) != st.session_state.start_position:
-                st.session_state.start_position = (clicked_lat, clicked_lon)
-                st.session_state.route_built = False
-                st.session_state.route_explanation = None
-                st.session_state.explanation_generating = False
-                st.rerun()
+            if map_data and map_data.get("last_clicked"):
+                clicked_lat = map_data["last_clicked"]["lat"]
+                clicked_lon = map_data["last_clicked"]["lng"]
+
+                if (clicked_lat, clicked_lon) != st.session_state.start_position:
+                    st.session_state.start_position = (clicked_lat, clicked_lon)
+                    st.session_state.route_built = False
+                    st.session_state.route_explanation = None
+                    st.session_state.explanation_generating = False
+                    st.rerun()
 
         if (st.session_state.route_built and
                 use_llm and
