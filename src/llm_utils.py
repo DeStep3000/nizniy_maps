@@ -1,8 +1,12 @@
+import json
+import os
+
+import requests
 import streamlit as st
 import torch
-import requests
-import json
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 
 @st.cache_resource(show_spinner=False)
@@ -62,11 +66,14 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
     for i, point in enumerate(route):
         obj = point["object"]
         category_name = categories_dict.get(obj["category_id"], "Другое")
-        short_description = obj["description"][:100] + "..." if len(obj["description"]) > 100 else obj["description"]
-        object_descriptions.append(f"{i + 1}. {obj['title']} ({category_name}): {short_description}")
+        short_description = obj["description"][:100] + \
+            "..." if len(obj["description"]) > 100 else obj["description"]
+        object_descriptions.append(
+            f"{i + 1}. {obj['title']} ({category_name}): {short_description}")
 
     descriptions_text = "\n".join(object_descriptions)
-    selected_cats_names = [categories_dict.get(cat_id, "Другое") for cat_id in selected_categories]
+    selected_cats_names = [categories_dict.get(
+        cat_id, "Другое") for cat_id in selected_categories]
 
     prompt = f"""
 Я создал культурный маршрут по Нижнему Новгороду для туриста.
@@ -109,7 +116,7 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
         )
         explanation = response[0]["generated_text"]
         if explanation.startswith(prompt):
-            explanation = explanation[len(prompt) :].strip()
+            explanation = explanation[len(prompt):].strip()
         return explanation
     except Exception as e:
         st.error(f"Ошибка генерации объяснения: {e}")
@@ -117,16 +124,20 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
             route, selected_cats_names, total_time, categories_dict, start_position
         )
 
+
 def generate_route_explanation_new(route, selected_categories, categories_dict):
     object_descriptions = []
     for i, point in enumerate(route):
         obj = point["object"]
         category_name = categories_dict.get(obj["category_id"], "Другое")
-        short_description = obj["description"][:100] + "..." if len(obj["description"]) > 100 else obj["description"]
-        object_descriptions.append(f"{i + 1}. {obj['title']} ({category_name}): {short_description}")
+        short_description = obj["description"][:100] + \
+            "..." if len(obj["description"]) > 100 else obj["description"]
+        object_descriptions.append(
+            f"{i + 1}. {obj['title']} ({category_name}): {short_description}")
 
     descriptions_text = "\n".join(object_descriptions)
-    selected_cats_names = [categories_dict.get(cat_id, "Другое") for cat_id in selected_categories]
+    selected_cats_names = [categories_dict.get(
+        cat_id, "Другое") for cat_id in selected_categories]
 
     prompt = f"""
     Ты - культурный гид. Cоздай краткое и увлекательное объяснение построенного маршрута. Пожалуйста, объясни логику построения этого маршрута, почему выбраны именно эти объекты и в таком порядке,
