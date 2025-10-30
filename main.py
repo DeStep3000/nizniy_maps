@@ -6,10 +6,10 @@ from streamlit_js_eval import get_geolocation
 
 from src.constants import CATEGORIES as categories
 from src.data_loader import load_data
-from src.llm_utils import generate_route_explanation
+from src.llm_utils import generate_route_explanation_new
 from src.map_utils import create_interactive_map
 from src.routing import generate_route_description, plan_route
-from src.utils import generate_yandex_maps_url
+from src.utils import generate_yandex_maps_url, apply_chat_style, chat_response
 
 
 def _init_state():
@@ -84,8 +84,6 @@ def main():  # noqa: C901
             st.sidebar.error("Пожалуйста, выберите хотя бы одну категорию!")
         else:
             st.write("Маршрут строится!")
-            # Спиннеры в UI можно оставить (по желанию),
-            # но спиннер при хэшировании кэша/ресурсов отключён в декораторах cache_*.
             route = plan_route(st.session_state.start_position, selected_categories, total_time, df)
 
             if route:
@@ -93,9 +91,7 @@ def main():  # noqa: C901
                 st.session_state.route_built = True
 
                 if use_llm:
-                    explanation = generate_route_explanation(
-                        route, selected_categories, total_time, categories, st.session_state.start_position
-                    )
+                    explanation = generate_route_explanation_new(route, selected_categories, categories)
                     st.session_state.route_explanation = explanation
                 else:
                     st.session_state.route_explanation = None
@@ -143,12 +139,10 @@ def main():  # noqa: C901
                 st.rerun()
 
         if st.session_state.route_built and st.session_state.route_explanation:
-            st.subheader("🤖 Объяснение выбора маршрута")
-            st.info(st.session_state.route_explanation)
+            apply_chat_style()
+            chat_response(st.session_state.route_explanation)
 
     with col2:
-        st.subheader("⚡ Быстрые действия")
-
         if st.session_state.route_built and st.session_state.current_route:
             route = st.session_state.current_route
 
