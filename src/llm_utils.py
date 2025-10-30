@@ -1,90 +1,185 @@
+import streamlit as st
 import requests
-import os
 import json
 
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+class YandexGPTClient:
+    def __init__(self):
+        self.url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
+
+    def generate_explanation(self, prompt, temperature=0.5, max_tokens=400):  # Увеличили для красочных описаний
+        """Генерация текста через Yandex GPT"""
+        try:
+            api_key = st.secrets.get("YANDEX_API_KEY")
+            folder_id = st.secrets.get("YANDEX_FOLDER_ID")
+
+            if not api_key or not folder_id:
+                return None
+
+            headers = {
+                "Authorization": f"Api-Key {api_key}",
+                "Content-Type": "application/json"
+            }
+
+            payload = {
+                "modelUri": f"gpt://{folder_id}/yandexgpt-lite",
+                "completionOptions": {
+                    "stream": False,
+                    "temperature": temperature,  # Увеличили для креативности
+                    "maxTokens": max_tokens
+                },
+                "messages": [
+                    {
+                        "role": "system",
+                        "text": """Ты - профессиональный гид-эксперт по Нижнему Новгороду с талантом рассказчика.
+                        Твоя задача - создавать красочные, увлекательные и информативные описания маршрутов.
+
+                        СТИЛЬ ОПИСАНИЯ:
+                        - Яркий, образный язык с элементами сторителлинга
+                        - Подчеркивай уникальные особенности каждого объекта
+                        - Показывай преимущества и ценность достопримечательностей
+                        - Создавай логические связи между объектами маршрута
+                        - Передавай атмосферу и исторический контекст
+
+                        СТРУКТУРА ОТВЕТА:
+                        1. Введение - общая концепция маршрута
+                        2. Описание ключевых объектов с акцентом на их преимущества
+                        3. Логика последовательности и практическая польза
+                        4. Итог - что получит турист от этого маршрута"""
+                    },
+                    {
+                        "role": "user",
+                        "text": prompt
+                    }
+                ]
+            }
+
+            response = requests.post(self.url, headers=headers, json=payload, timeout=30)
+            response.raise_for_status()
+
+            result = response.json()
+            return result["result"]["alternatives"][0]["message"]["text"]
+
+        except Exception as e:
+            st.error(f"❌ Ошибка Yandex GPT: {e}")
+            return None
 
 
-def generate_enhanced_fallback_explanation(route, selected_categories, total_time, categories_dict):
+# Создаем клиент
+yandex_gpt = YandexGPTClient()
+
+
+def generate_route_explanation(route, selected_categories, total_time, categories_dict, start_position):
+    """Основная функция генерации красочного описания маршрута"""
     if not route:
         return "Маршрут не содержит объектов."
 
-    category_counts = {}
-    for point in route:
-        cat_id = point["object"]["category_id"]
-        category_counts[cat_id] = category_counts.get(cat_id, 0) + 1
-
-    main_categories = []
-    for cat_id, count in category_counts.items():
-        cat_name = categories_dict.get(cat_id, "Другое")
-        main_categories.append(f"{cat_name} ({count} объектов)")
-
+    # Подготовка данных маршрута
+    total_travel_time = sum(point["travel_time"] for point in route)
+    total_visit_time = sum(point["visit_time"] for point in route)
     total_distance = sum(point["distance"] for point in route)
-    avg_time_per_object = total_time / len(route) if route else 0
 
     selected_cats_names = [categories_dict.get(cat_id, "Другое") for cat_id in selected_categories]
-    explanation = f"Этот маршрут идеально соответствует вашим интересам в {', '.join(selected_cats_names)}. "
-    explanation += f"За {total_time} минут вы посетите {len(route)} ключевых достопримечательностей, начиная от '{route[0]['object']['title']}' "  # noqa: E501
 
-    if len(route) > 1:
-        explanation += f"и заканчивая '{route[-1]['object']['title']}'. "
+    # Собираем детальную информацию об объектах как в первой версии
+    object_descriptions = []
+    for i, point in enumerate(route, 1):
+        obj = point["object"]
+        category_name = categories_dict.get(obj["category_id"], "Другое")
 
-    explanation += f"Основной акцент сделан на {', '.join(main_categories)}. "
-    explanation += f"Маршрут протяженностью {total_distance:.0f} метров оптимизирован для пешеходной прогулки, "
-    explanation += f"с равномерным распределением времени (в среднем {avg_time_per_object:.1f} минут на объект)."
+        # Полное описание объекта
+        description = obj["description"]
+        if len(description) > 200:  # Ограничиваем длину но оставляем информативным
+            description = description[:200] + "..."
+
+        object_info = f"{i}. {obj['title']} ({category_name}) - {description}"
+        object_descriptions.append(object_info)
+
+    descriptions_text = "\n".join(object_descriptions)
+
+    # Создаем БОГАТЫЙ промпт с описаниями объектов
+    prompt = f"""
+СОЗДАЙ КРАСОЧНОЕ ОПИСАНИЕ ТУРИСТИЧЕСКОГО МАРШРУТА ПО НИЖНЕМУ НОВГОРОДУ
+
+ИНФОРМАЦИЯ О МАРШРУТЕ:
+- Интересы туриста: {", ".join(selected_cats_names)}
+- Общее время: {total_time} минут
+- Протяженность: {total_distance:.0f} метров
+- Количество объектов: {len(route)}
+- Время в пути: {total_travel_time:.1f} минут
+- Время на осмотр: {total_visit_time} минут
+
+ПОДРОБНОЕ ОПИСАНИЕ ОБЪЕКТОВ МАРШРУТА:
+{descriptions_text}
+
+ЗАДАЧА:
+Создай увлекательное описание этого маршрута, которое:
+1. Раскрывает уникальные преимущества и особенности КАЖДОГО объекта
+2. Объясняет, почему именно эти достопримечательности были выбраны
+3. Показывает логическую связь между объектами маршрута
+4. Подчеркивает практическую пользу и эмоциональную ценность прогулки
+5. Создает целостный образ путешествия по Нижнему Новгороду
+
+ОСОБЫЕ УКАЗАНИЯ:
+- Используй яркие, запоминающиеся описания
+- Подчеркивай историческую и культурную ценность объектов
+- Покажи, как маршрут удовлетворяет интересы туриста в {", ".join(selected_cats_names)}
+- Создай ощущение последовательного погружения в атмосферу города
+
+НАЧНИ ОПИСАНИЕ:
+"""
+
+    # Генерация через Yandex GPT
+    with st.spinner("🎨 Создаем красочное описание маршрута..."):
+        explanation = yandex_gpt.generate_explanation(prompt)
+        explanation += "\n\n---\n"
+        explanation += "⚠️ *Ответ сгенерирован нейросетью и может содержать неточности. Рекомендуем проверять актуальность информации.*"
+
+    # Если ИИ недоступен, используем улучшенный резервный вариант
+    if not explanation:
+        st.warning("⚠️ Yandex GPT временно недоступен, используем стандартное описание")
+        explanation = generate_enhanced_fallback_explanation(
+            route, selected_cats_names, total_time, categories_dict, start_position, descriptions_text
+        )
 
     return explanation
 
+def generate_enhanced_fallback_explanation(route, selected_cats_names, total_time, categories_dict, start_position,
+                                           descriptions_text=""):
+    """Улучшенное резервное описание с элементами сторителлинга"""
+    if not route:
+        return "Маршрут не содержит объектов."
 
-def generate_route_explanation_new(route, selected_categories, categories_dict):
-    object_descriptions = []
+    # Анализ маршрута
+    category_counts = {}
+    total_distance = 0
+    for point in route:
+        cat_id = point["object"]["category_id"]
+        category_counts[cat_id] = category_counts.get(cat_id, 0) + 1
+        total_distance += point["distance"]
+
+    # Основные категории
+    main_categories = []
+    for cat_id, count in category_counts.items():
+        percentage = (count / len(route)) * 100
+        cat_name = categories_dict.get(cat_id, "Другое")
+        main_categories.append(f"{cat_name} ({count} объектов)")
+
+    # Собираем ключевые объекты для упоминания
+    key_objects = []
     for i, point in enumerate(route):
-        obj = point["object"]
-        category_name = categories_dict.get(obj["category_id"], "Другое")
-        short_description = obj["description"][:100] + \
-            "..." if len(obj["description"]) > 100 else obj["description"]
-        object_descriptions.append(
-            f"{i + 1}. {obj['title']} ({category_name}): {short_description}")
+        if i == 0 or i == len(route) - 1 or i == len(route) // 2:  # Первый, последний и средний
+            obj = point["object"]
+            key_objects.append(f"'{obj['title']}'")
 
-    descriptions_text = "\n".join(object_descriptions)
-    selected_cats_names = [categories_dict.get(
-        cat_id, "Другое") for cat_id in selected_categories]
+    explanation = f"""Отправляйтесь в увлекательное путешествие по Нижнему Новгороду, разработанное специально для ценителей {", ".join(selected_cats_names)}!
 
-    prompt = f"""
-    Ты - культурный гид. Cоздай краткое и увлекательное объяснение построенного маршрута. Пожалуйста, объясни логику построения этого маршрута, почему выбраны именно эти объекты и в таком порядке,
-    как они связаны с интересами пользователя. Сделай объяснение кратким (3-4 предложения) и объясни связь с интересами пользователя.
+Этот маршрут проведет вас через {len(route)} знаковых locations, начиная с {route[0]['object']['title']} и завершая {route[-1]['object']['title']}. Вы познакомитесь с богатым наследием города, где преобладают {", ".join(main_categories[:2])}.
 
-    - Выбранные категории интересов: {", ".join(selected_cats_names)}
+По пути вас ждут уникальные объекты, такие как {", ".join(key_objects[:3])}, каждый из которых раскрывает свою часть истории великого города на Волге. 
 
-    Объекты маршрута по порядку:
-    {descriptions_text}
-    """
+Маршрут протяженностью {total_distance:.0f} метров оптимально спланирован для {total_time}-минутной прогулки, позволяя неспешно насладиться архитектурой, погрузиться в атмосферу старинных улиц и сделать памятные фотографии.
 
-    response = requests.post(
-        url="https://openrouter.ai/api/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "Content-Type": "application/json"
-        },
-        data=json.dumps({
-            "model": "openai/gpt-4o-mini",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": prompt
-                        },
-                    ]
-                }
-            ],
+Это идеальный способ познакомиться с ключевыми достопримечательностями Нижнего Новгорода, ощутив его неповторимый характер и историческое величие."""
 
-        })
-    )
-    response_data = response.json()
-
-    response_text = response_data['choices'][0]['message']['content']
-
-    return response_text
+    return explanation
