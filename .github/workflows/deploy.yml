@@ -37,7 +37,9 @@ jobs:
             git checkout main
             git reset --hard origin/main
 
-            export OPENROUTER_API_KEY='${{ secrets.OPENROUTER_API_KEY }}'
+            export YANDEXGPT_API_KEY='${{ secrets.YANDEXGPT_API_KEY }}'
+            export YANDEXGPT_FOLDER_ID='${{ secrets.YANDEXGPT_FOLDER_ID }}'
+
 
             # --- Пересобираем через Makefile ---
             make rebuild
