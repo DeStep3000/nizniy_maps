@@ -37,7 +37,7 @@ jobs:
             git checkout main
             git reset --hard origin/main
 
+            export OPENROUTER_API_KEY='${{ secrets.OPENROUTER_API_KEY }}'
+
             # --- Пересобираем через Makefile ---
             make rebuild
-
-            echo "✅ Deploy finished."

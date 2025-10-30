@@ -1,6 +1,9 @@
 import requests
+import os
 import json
 
+
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 
 def generate_enhanced_fallback_explanation(route, selected_categories, total_time, categories_dict):
@@ -39,11 +42,14 @@ def generate_route_explanation_new(route, selected_categories, categories_dict):
     for i, point in enumerate(route):
         obj = point["object"]
         category_name = categories_dict.get(obj["category_id"], "Другое")
-        short_description = obj["description"][:100] + "..." if len(obj["description"]) > 100 else obj["description"]
-        object_descriptions.append(f"{i + 1}. {obj['title']} ({category_name}): {short_description}")
+        short_description = obj["description"][:100] + \
+            "..." if len(obj["description"]) > 100 else obj["description"]
+        object_descriptions.append(
+            f"{i + 1}. {obj['title']} ({category_name}): {short_description}")
 
     descriptions_text = "\n".join(object_descriptions)
-    selected_cats_names = [categories_dict.get(cat_id, "Другое") for cat_id in selected_categories]
+    selected_cats_names = [categories_dict.get(
+        cat_id, "Другое") for cat_id in selected_categories]
 
     prompt = f"""
     Ты - культурный гид. Cоздай краткое и увлекательное объяснение построенного маршрута. Пожалуйста, объясни логику построения этого маршрута, почему выбраны именно эти объекты и в таком порядке,
