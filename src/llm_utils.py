@@ -1,12 +1,18 @@
-import streamlit as st
+import os
+
 import requests
+import streamlit as st
+
+YANDEXGPT_API_KEY = os.getenv("YANDEXGPT_API_KEY")
+YANDEXGPT_FOLDER_ID = os.getenv("YANDEXGPT_FOLDER_ID")
 
 
 class YandexGPTClient:
     def __init__(self):
         self.url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
 
-    def generate_explanation(self, prompt, temperature=0.5, max_tokens=400):  # Увеличили для красочных описаний
+    # Увеличили для красочных описаний
+    def generate_explanation(self, prompt, temperature=0.5, max_tokens=400):
         """Генерация текста через Yandex GPT"""
         try:
 
@@ -51,7 +57,8 @@ class YandexGPTClient:
                 ]
             }
 
-            response = requests.post(self.url, headers=headers, json=payload, timeout=30)
+            response = requests.post(
+                self.url, headers=headers, json=payload, timeout=30)
             response.raise_for_status()
 
             result = response.json()
@@ -60,7 +67,6 @@ class YandexGPTClient:
         except Exception as e:
             st.error(f"❌ Ошибка Yandex GPT: {e}")
             return None
-
 
 
 def generate_route_explanation(route, selected_categories, total_time, categories_dict, start_position):
@@ -75,7 +81,8 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
     total_visit_time = sum(point["visit_time"] for point in route)
     total_distance = sum(point["distance"] for point in route)
 
-    selected_cats_names = [categories_dict.get(cat_id, "Другое") for cat_id in selected_categories]
+    selected_cats_names = [categories_dict.get(
+        cat_id, "Другое") for cat_id in selected_categories]
 
     # Собираем детальную информацию об объектах как в первой версии
     object_descriptions = []
@@ -130,12 +137,14 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
 
     # Если ИИ недоступен, используем улучшенный резервный вариант
     if not explanation:
-        st.warning("⚠️ Yandex GPT временно недоступен, используем стандартное описание")
+        st.warning(
+            "⚠️ Yandex GPT временно недоступен, используем стандартное описание")
         explanation = generate_enhanced_fallback_explanation(
             route, selected_cats_names, total_time, categories_dict, start_position, descriptions_text
         )
 
     return explanation
+
 
 def generate_enhanced_fallback_explanation(route, selected_cats_names, total_time, categories_dict, start_position,
                                            descriptions_text=""):
@@ -161,7 +170,8 @@ def generate_enhanced_fallback_explanation(route, selected_cats_names, total_tim
     # Собираем ключевые объекты для упоминания
     key_objects = []
     for i, point in enumerate(route):
-        if i == 0 or i == len(route) - 1 or i == len(route) // 2:  # Первый, последний и средний
+        # Первый, последний и средний
+        if i == 0 or i == len(route) - 1 or i == len(route) // 2:
             obj = point["object"]
             key_objects.append(f"'{obj['title']}'")
 

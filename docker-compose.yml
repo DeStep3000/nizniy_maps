@@ -21,7 +21,8 @@ services:
     environment:
       - TZ=Europe/Moscow
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-locations_db}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - YANDEXGPT_API_KEY=${YANDEXGPT_API_KEY}
+      - YANDEXGPT_FOLDER_ID=${YANDEXGPT_FOLDER_ID}
     volumes:
       - ./data_:/app/data_
 
