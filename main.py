@@ -33,12 +33,22 @@ def _init_state():
 
 def main():  # noqa: C901
     st.set_page_config(page_title="Нижний Новгород - Планировщик маршрутов", layout="wide")
-    st.title("🏛️ Интерактивный планировщик культурных маршрутов Нижнего Новгорода")
+    st.markdown("""
+        <h1 style='
+            font-size: 48px;
+            color: #000000;
+            text-align: center;
+            font-family: Arial;
+        '>Интерактивный планировщик культурных маршрутов Нижнего Новгорода</h1>
+    """, unsafe_allow_html=True)
 
     _init_state()
     df = load_data()
 
-    st.sidebar.header("🎯 Настройки маршрута")
+    st.sidebar.markdown(
+        "<h2 style='color: #ff6b6b; font-size: 30px; text-align: center; font-weight: bold;'>Настройки маршрута</h2>",
+        unsafe_allow_html=True
+    )
 
     st.sidebar.subheader("Выберите интересующие категории:")
     selected_categories = []
@@ -66,7 +76,10 @@ def main():  # noqa: C901
 
     use_llm = st.sidebar.checkbox("🤖 Использовать ИИ для объяснения маршрута", value=True)
 
-    st.sidebar.subheader("🚀 Быстрый выбор точки старта")
+    st.sidebar.markdown(
+        "<h2 style='color: #ff6b6b; font-size: 30px; text-align: center; font-weight: bold;'>Выбор точки старта</h2>",
+        unsafe_allow_html=True
+    )
     popular_points = {
         "Кремль": (56.326887, 44.005986),
         "Площадь Минина": (56.327266, 44.006597),
@@ -75,7 +88,7 @@ def main():  # noqa: C901
         "Стрелка": (56.334505, 43.976589),
     }
 
-    selected_point = st.sidebar.selectbox("Выберите популярную точку:", list(popular_points.keys()))
+    selected_point = st.sidebar.selectbox("Выберите популярную точку и нажмите кнопку ниже:", list(popular_points.keys()))
     if st.sidebar.button("Установить точку старта"):
         st.session_state.start_position = popular_points[selected_point]
         st.session_state.route_built = False
@@ -96,6 +109,10 @@ def main():  # noqa: C901
             st.sidebar.error("Не удалось определить координаты местоположения")
             st.session_state.getting_location = False
 
+    st.sidebar.markdown(
+        "<h2 style='color: #ff6b6b; font-size: 30px; text-align: center; font-weight: bold;'>Использовать геолокацию</h2>",
+        unsafe_allow_html=True
+    )
     if st.sidebar.button("📍 Использовать мое местоположение"):
         st.session_state.getting_location = True
         st.rerun()
@@ -134,7 +151,7 @@ def main():  # noqa: C901
     with col1:
         st.subheader("🗺️ Интерактивная карта достопримечательностей")
         st.markdown(
-            "**💡 Инструкция:** Кликните на карте, чтобы установить точку старта. Выбранные категории отображаются сразу."
+            "**💡 Подсказка:** Кликните один раз на карте, чтобы установить собственную точку старта. Выбранные категории отображаются сразу."
         )
 
         map_obj = create_interactive_map(
