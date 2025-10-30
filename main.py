@@ -86,7 +86,7 @@ def main():  # noqa: C901
             st.write("Маршрут строится!")
             # Спиннеры в UI можно оставить (по желанию),
             # но спиннер при хэшировании кэша/ресурсов отключён в декораторах cache_*.
-            route = plan_route(st.session_state.start_position, selected_categories, total_time, df)
+            route = plan_route(st.session_state.start_position, selected_categories, total_time, df, search_radius)
 
             if route:
                 st.session_state.current_route = route
