@@ -27,6 +27,8 @@ def _init_state():
         st.session_state.explanation_generating = False
     if "used_llm_route_explanation" not in st.session_state:
         st.session_state.used_llm_route_explanation = False
+    if "getting_location" not in st.session_state:
+        st.session_state.getting_location = False
 
 
 def main():  # noqa: C901
@@ -81,13 +83,22 @@ def main():  # noqa: C901
         st.session_state.explanation_generating = False
         st.rerun()
 
-    if st.sidebar.checkbox("Использовать мое местоположение"):
+    if st.session_state.getting_location:
         loc = get_geolocation()
         if loc and 'coords' in loc:
             st.session_state.start_position = (loc['coords']['latitude'], loc['coords']['longitude'])
             st.session_state.route_built = False
             st.session_state.route_explanation = None
             st.session_state.explanation_generating = False
+            st.session_state.getting_location = False
+            st.rerun()
+        elif loc:
+            st.sidebar.error("Не удалось определить координаты местоположения")
+            st.session_state.getting_location = False
+
+    if st.sidebar.button("📍 Использовать мое местоположение"):
+        st.session_state.getting_location = True
+        st.rerun()
 
     st.sidebar.info(
         f"📍 Текущая точка старта:\n{st.session_state.start_position[0]:.6f}, {st.session_state.start_position[1]:.6f}"
