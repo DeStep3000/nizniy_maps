@@ -1,5 +1,7 @@
 import streamlit as st
 import torch
+import requests
+import json
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 
@@ -86,6 +88,7 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
 
 Объяснение:
 """
+    print(prompt)
 
     generator = load_llm()
     if generator is None:
@@ -113,3 +116,52 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
         return generate_enhanced_fallback_explanation(
             route, selected_cats_names, total_time, categories_dict, start_position
         )
+
+def generate_route_explanation_new(route, selected_categories, categories_dict):
+    object_descriptions = []
+    for i, point in enumerate(route):
+        obj = point["object"]
+        category_name = categories_dict.get(obj["category_id"], "Другое")
+        short_description = obj["description"][:100] + "..." if len(obj["description"]) > 100 else obj["description"]
+        object_descriptions.append(f"{i + 1}. {obj['title']} ({category_name}): {short_description}")
+
+    descriptions_text = "\n".join(object_descriptions)
+    selected_cats_names = [categories_dict.get(cat_id, "Другое") for cat_id in selected_categories]
+
+    prompt = f"""
+    Ты - культурный гид. Cоздай краткое и увлекательное объяснение построенного маршрута. Пожалуйста, объясни логику построения этого маршрута, почему выбраны именно эти объекты и в таком порядке,
+    как они связаны с интересами пользователя. Сделай объяснение кратким (3-4 предложения) и объясни связь с интересами пользователя.
+
+    - Выбранные категории интересов: {", ".join(selected_cats_names)}
+
+    Объекты маршрута по порядку:
+    {descriptions_text}
+    """
+
+    response = requests.post(
+        url="https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json"
+        },
+        data=json.dumps({
+            "model": "openai/gpt-4o-mini",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": prompt
+                        },
+                    ]
+                }
+            ],
+
+        })
+    )
+    response_data = response.json()
+
+    response_text = response_data['choices'][0]['message']['content']
+
+    return response_text
