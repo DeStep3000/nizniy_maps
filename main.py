@@ -9,7 +9,7 @@ from src.data_loader import load_data
 from src.llm_utils import generate_route_explanation_new, generate_enhanced_fallback_explanation
 from src.map_utils import create_interactive_map
 from src.routing import generate_route_description, plan_route
-from src.utils import generate_yandex_maps_url, apply_chat_style, chat_response_llm, chat_response_simple
+from src.utils import generate_yandex_maps_url, apply_chat_style, chat_response
 
 
 def _init_state():
@@ -25,6 +25,8 @@ def _init_state():
         st.session_state.route_explanation = None
     if "explanation_generating" not in st.session_state:
         st.session_state.explanation_generating = False
+    if "used_llm_route_explanation" not in st.session_state:
+        st.session_state.used_llm_route_explanation = False
 
 
 def main():  # noqa: C901
@@ -167,12 +169,12 @@ def main():  # noqa: C901
                 )
                 st.session_state.route_explanation = explanation
                 st.session_state.explanation_generating = False
+                st.session_state.used_llm_route_explanation = True
                 st.rerun()
         elif (st.session_state.route_built and
                 st.session_state.explanation_generating and
                 st.session_state.route_explanation is None):
             with st.spinner("❓ Создаем объяснение..."):
-                print(selected_categories)
                 explanation = generate_enhanced_fallback_explanation(
                         st.session_state.current_route,
                         selected_categories,
@@ -180,14 +182,12 @@ def main():  # noqa: C901
                         categories)
                 st.session_state.route_explanation = explanation
                 st.session_state.explanation_generating = False
+                st.session_state.used_llm_route_explanation = False
                 st.rerun()
 
-        if st.session_state.route_built and st.session_state.route_explanation and use_llm:
+        if st.session_state.route_built and st.session_state.route_explanation:
             apply_chat_style()
-            chat_response_llm(st.session_state.route_explanation)
-        elif st.session_state.route_built and st.session_state.route_explanation:
-            apply_chat_style()
-            chat_response_simple(st.session_state.route_explanation)
+            chat_response(st.session_state.route_explanation, st.session_state.used_llm_route_explanation)
 
     with col2:
         if st.session_state.route_built and st.session_state.current_route:
