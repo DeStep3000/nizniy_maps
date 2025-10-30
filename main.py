@@ -6,7 +6,7 @@ from streamlit_js_eval import get_geolocation
 
 from src.constants import CATEGORIES as categories
 from src.data_loader import load_data
-from src.llm_utils import generate_route_explanation_new, generate_enhanced_fallback_explanation
+from src.llm_utils import generate_enhanced_fallback_explanation, generate_route_explanation
 from src.map_utils import create_interactive_map
 from src.routing import generate_route_description, plan_route
 from src.utils import generate_yandex_maps_url, apply_chat_style, chat_response
@@ -183,10 +183,12 @@ def main():  # noqa: C901
                 st.session_state.explanation_generating and
                 st.session_state.route_explanation is None):
             with st.spinner("🤖 ИИ генерирует объяснение маршрута..."):
-                explanation = generate_route_explanation_new(
+                explanation = generate_route_explanation(
                     st.session_state.current_route,
                     selected_categories,
-                    categories
+                    total_time,
+                    categories,
+                    st.session_state.start_position
                 )
                 st.session_state.route_explanation = explanation
                 st.session_state.explanation_generating = False

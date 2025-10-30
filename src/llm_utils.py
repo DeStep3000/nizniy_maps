@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-import json
 
 
 class YandexGPTClient:
@@ -65,12 +64,11 @@ class YandexGPTClient:
             return None
 
 
-# Создаем клиент
-yandex_gpt = YandexGPTClient()
-
 
 def generate_route_explanation(route, selected_categories, total_time, categories_dict, start_position):
     """Основная функция генерации красочного описания маршрута"""
+    # Создаем клиент
+    yandex_gpt = YandexGPTClient()
     if not route:
         return "Маршрут не содержит объектов."
 
