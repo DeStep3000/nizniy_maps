@@ -29,8 +29,6 @@ def _init_state():
         st.session_state.used_llm_route_explanation = False
     if "getting_location" not in st.session_state:
         st.session_state.getting_location = False
-    if "updating_map" not in st.session_state:
-        st.session_state.updating_map = False
 
 
 def main():  # noqa: C901
@@ -194,7 +192,7 @@ def main():  # noqa: C901
                     st.session_state.current_route
                 )
 
-                map_data = st_folium(map_obj, width=700, height=500, returned_objects=["last_clicked"])
+                map_data = st_folium(map_obj, width=None, height=500, returned_objects=["last_clicked"])
 
                 if map_data and map_data.get("last_clicked"):
                     clicked_lat = map_data["last_clicked"]["lat"]

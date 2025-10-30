@@ -9,8 +9,8 @@ from src.constants import CATEGORY_COLORS as category_colors
 
 @lru_cache(maxsize=512)
 def _fetch_osrm_route(a, b):
-    profile = 'foot'
-    base = "https://router.project-osrm.org/route/v1"
+    profile = 'driving'
+    base = "https://routing.openstreetmap.de/routed-foot/route/v1"
     url = f"{base}/{profile}/{a[1]},{a[0]};{b[1]},{b[0]}?overview=full&geometries=geojson"
     try:
         r = requests.get(url, timeout=6)
