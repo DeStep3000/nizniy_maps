@@ -1,11 +1,27 @@
 services:
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: postgres_db
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-locations_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      TZ: Europe/Moscow
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
   app:
     build: .
     container_name: nizhny_maps
+    env_file: .env
     ports:
       - "8501:8501"
     environment:
       - TZ=Europe/Moscow
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-locations_db}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
     volumes:
       - ./data_:/app/data_
 
