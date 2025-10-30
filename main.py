@@ -6,10 +6,10 @@ from streamlit_js_eval import get_geolocation
 
 from src.constants import CATEGORIES as categories
 from src.data_loader import load_data
-from src.llm_utils import generate_route_explanation_new
+from src.llm_utils import generate_route_explanation_new, generate_enhanced_fallback_explanation
 from src.map_utils import create_interactive_map
 from src.routing import generate_route_description, plan_route
-from src.utils import generate_yandex_maps_url, apply_chat_style, chat_response
+from src.utils import generate_yandex_maps_url, apply_chat_style, chat_response_llm, chat_response_simple
 
 
 def _init_state():
@@ -23,6 +23,8 @@ def _init_state():
         st.session_state.current_route = None
     if "route_explanation" not in st.session_state:
         st.session_state.route_explanation = None
+    if "explanation_generating" not in st.session_state:
+        st.session_state.explanation_generating = False
 
 
 def main():  # noqa: C901
@@ -73,6 +75,8 @@ def main():  # noqa: C901
     if st.sidebar.button("Установить точку старта"):
         st.session_state.start_position = popular_points[selected_point]
         st.session_state.route_built = False
+        st.session_state.route_explanation = None
+        st.session_state.explanation_generating = False
         st.rerun()
 
     if st.sidebar.checkbox("Использовать мое местоположение"):
@@ -80,33 +84,33 @@ def main():  # noqa: C901
         if loc and 'coords' in loc:
             st.session_state.start_position = (loc['coords']['latitude'], loc['coords']['longitude'])
             st.session_state.route_built = False
+            st.session_state.route_explanation = None
+            st.session_state.explanation_generating = False
 
     st.sidebar.info(
         f"📍 Текущая точка старта:\n{st.session_state.start_position[0]:.6f}, {st.session_state.start_position[1]:.6f}"
     )
     st.sidebar.info(f"🎯 Выбрано категорий: {len(selected_categories)}")
     st.sidebar.info(
-        f"📊 Всего объектов на карте: {len(df[df['category_id'].isin(selected_categories)]) if selected_categories else len(df)}"  # noqa: E501
+        f"📊 Всего объектов на карте:{len(df[df['category_id'].isin(selected_categories)]) if selected_categories else len(df)}"
     )
 
     if st.sidebar.button("🚀 Построить маршрут", type="primary", use_container_width=True):
         if not selected_categories:
             st.sidebar.error("Пожалуйста, выберите хотя бы одну категорию!")
         else:
-            st.write("Маршрут строится!")
-            route = plan_route(st.session_state.start_position, selected_categories, total_time, df)
+            with st.spinner("Построение маршрута..."):
+                route = plan_route(st.session_state.start_position, selected_categories, total_time, df)
 
             if route:
                 st.session_state.current_route = route
                 st.session_state.route_built = True
+                st.session_state.route_explanation = None
+                st.session_state.explanation_generating = True
 
-                if use_llm:
-                    explanation = generate_route_explanation_new(route, selected_categories, categories)
-                    st.session_state.route_explanation = explanation
-                else:
-                    st.session_state.route_explanation = None
 
                 st.sidebar.success(f"✅ Маршрут построен! Посещено объектов: {len(route)}")
+                st.rerun()
             else:
                 st.sidebar.warning(
                     "⚠️ Не удалось построить маршрут. Попробуйте увеличить время или изменить начальную точку."
@@ -117,6 +121,7 @@ def main():  # noqa: C901
             st.session_state.route_built = False
             st.session_state.current_route = None
             st.session_state.route_explanation = None
+            st.session_state.explanation_generating = False
             st.rerun()
 
     col1, col2 = st.columns([2, 1])
@@ -146,11 +151,43 @@ def main():  # noqa: C901
             if (clicked_lat, clicked_lon) != st.session_state.start_position:
                 st.session_state.start_position = (clicked_lat, clicked_lon)
                 st.session_state.route_built = False
+                st.session_state.route_explanation = None
+                st.session_state.explanation_generating = False
                 st.rerun()
 
-        if st.session_state.route_built and st.session_state.route_explanation:
+        if (st.session_state.route_built and
+                use_llm and
+                st.session_state.explanation_generating and
+                st.session_state.route_explanation is None):
+            with st.spinner("🤖 ИИ генерирует объяснение маршрута..."):
+                explanation = generate_route_explanation_new(
+                    st.session_state.current_route,
+                    selected_categories,
+                    categories
+                )
+                st.session_state.route_explanation = explanation
+                st.session_state.explanation_generating = False
+                st.rerun()
+        elif (st.session_state.route_built and
+                st.session_state.explanation_generating and
+                st.session_state.route_explanation is None):
+            with st.spinner("❓ Создаем объяснение..."):
+                print(selected_categories)
+                explanation = generate_enhanced_fallback_explanation(
+                        st.session_state.current_route,
+                        selected_categories,
+                        total_time,
+                        categories)
+                st.session_state.route_explanation = explanation
+                st.session_state.explanation_generating = False
+                st.rerun()
+
+        if st.session_state.route_built and st.session_state.route_explanation and use_llm:
             apply_chat_style()
-            chat_response(st.session_state.route_explanation)
+            chat_response_llm(st.session_state.route_explanation)
+        elif st.session_state.route_built and st.session_state.route_explanation:
+            apply_chat_style()
+            chat_response_simple(st.session_state.route_explanation)
 
     with col2:
         if st.session_state.route_built and st.session_state.current_route:
@@ -162,7 +199,8 @@ def main():  # noqa: C901
 
             if yandex_url:
                 st.markdown(
-                    f'<a href="{yandex_url}" target="_blank"><button style="background-color: #FF0000; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">🗺️ Открыть маршрут в Яндекс Картах</button></a>',  # noqa: E501
+                    f'<a href="{yandex_url}" target="_blank"><button style="background-color: #FF0000; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">🗺️ Открыть маршрут в Яндекс Картах</button></a>',
+                    # noqa: E501
                     unsafe_allow_html=True,
                 )
                 st.markdown("")

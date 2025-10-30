@@ -67,15 +67,29 @@ def apply_chat_style():
                                     """, unsafe_allow_html=True)
 
 
-def chat_response(response):
+def chat_response_llm(response):
     st.markdown(f"""
-                            <div class="assistant-message">
-                                <div class="assistant-icon">🤖</div>
-                                <div class="assistant-text">
-                                    <div class="message-title">Туристический помощник:</div>
-                                    {response}
-                                    <br><br>
-                                    <strong>💡 Данный ответ сгенерирован AI-моделью и может содержать ошибки</strong>
-                                </div>
-                            </div>
-                        """, unsafe_allow_html=True)
+                <div class="assistant-message">
+                    <div class="assistant-icon">🤖</div>
+                    <div class="assistant-text">
+                        <div class="message-title">Туристический помощник:</div>
+                        {response}
+                        <br><br>
+                        <strong>💡 Данный ответ сгенерирован AI-моделью и может содержать ошибки</strong>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+
+def chat_response_simple(response):
+    st.markdown(f"""
+                <div class="assistant-message">
+                    <div class="assistant-icon">❓</div>
+                    <div class="assistant-text">
+                        <div class="message-title">Объяснение маршрута:</div>
+                        {response}
+                        <br><br>
+                        <strong>💡 Данный ответ создан автоматически без использования AI</strong>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)

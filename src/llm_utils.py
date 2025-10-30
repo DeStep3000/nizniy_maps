@@ -21,7 +21,7 @@ def load_llm():
         return None
 
 
-def generate_enhanced_fallback_explanation(route, selected_cats_names, total_time, categories_dict, start_position):
+def generate_enhanced_fallback_explanation(route, selected_categories, total_time, categories_dict):
     if not route:
         return "Маршрут не содержит объектов."
 
@@ -32,12 +32,14 @@ def generate_enhanced_fallback_explanation(route, selected_cats_names, total_tim
 
     main_categories = []
     for cat_id, count in category_counts.items():
+        print(categories_dict)
         cat_name = categories_dict.get(cat_id, "Другое")
         main_categories.append(f"{cat_name} ({count} объектов)")
 
     total_distance = sum(point["distance"] for point in route)
     avg_time_per_object = total_time / len(route) if route else 0
 
+    selected_cats_names = [categories_dict.get(cat_id, "Другое") for cat_id in selected_categories]
     explanation = f"Этот маршрут идеально соответствует вашим интересам в {', '.join(selected_cats_names)}. "
     explanation += f"За {total_time} минут вы посетите {len(route)} ключевых достопримечательностей, начиная от '{route[0]['object']['title']}' "  # noqa: E501
 
@@ -116,6 +118,7 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
         return generate_enhanced_fallback_explanation(
             route, selected_cats_names, total_time, categories_dict, start_position
         )
+
 
 def generate_route_explanation_new(route, selected_categories, categories_dict):
     object_descriptions = []
