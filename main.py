@@ -33,12 +33,22 @@ def _init_state():
 
 def main():  # noqa: C901
     st.set_page_config(page_title="Нижний Новгород - Планировщик маршрутов", layout="wide")
-    st.title("🏛️ Интерактивный планировщик культурных маршрутов Нижнего Новгорода")
+    st.markdown("""
+        <h1 style='
+            font-size: 48px;
+            color: #000000;
+            text-align: center;
+            font-family: Arial;
+        '>Интерактивный планировщик культурных маршрутов Нижнего Новгорода</h1>
+    """, unsafe_allow_html=True)
 
     _init_state()
     df = load_data()
 
-    st.sidebar.header("🎯 Настройки маршрута")
+    st.sidebar.markdown(
+        "<h2 style='color: #ff6b6b; font-size: 30px; text-align: center; font-weight: bold;'>Настройки маршрута</h2>",
+        unsafe_allow_html=True
+    )
 
     st.sidebar.subheader("Выберите интересующие категории:")
     selected_categories = []
@@ -66,7 +76,10 @@ def main():  # noqa: C901
 
     use_llm = st.sidebar.checkbox("🤖 Использовать ИИ для объяснения маршрута", value=True)
 
-    st.sidebar.subheader("🚀 Быстрый выбор точки старта")
+    st.sidebar.markdown(
+        "<h2 style='color: #ff6b6b; font-size: 30px; text-align: center; font-weight: bold;'>Выбор точки старта</h2>",
+        unsafe_allow_html=True
+    )
     popular_points = {
         "Кремль": (56.326887, 44.005986),
         "Площадь Минина": (56.327266, 44.006597),
@@ -75,7 +88,7 @@ def main():  # noqa: C901
         "Стрелка": (56.334505, 43.976589),
     }
 
-    selected_point = st.sidebar.selectbox("Выберите популярную точку:", list(popular_points.keys()))
+    selected_point = st.sidebar.selectbox("Выберите популярную точку и нажмите кнопку ниже:", list(popular_points.keys()))
     if st.sidebar.button("Установить точку старта"):
         st.session_state.start_position = popular_points[selected_point]
         st.session_state.route_built = False
@@ -96,17 +109,13 @@ def main():  # noqa: C901
             st.sidebar.error("Не удалось определить координаты местоположения")
             st.session_state.getting_location = False
 
+    st.sidebar.markdown(
+        "<h2 style='color: #ff6b6b; font-size: 30px; text-align: center; font-weight: bold;'>Использовать геолокацию</h2>",
+        unsafe_allow_html=True
+    )
     if st.sidebar.button("📍 Использовать мое местоположение"):
         st.session_state.getting_location = True
         st.rerun()
-
-    st.sidebar.info(
-        f"📍 Текущая точка старта:\n{st.session_state.start_position[0]:.6f}, {st.session_state.start_position[1]:.6f}"
-    )
-    st.sidebar.info(f"🎯 Выбрано категорий: {len(selected_categories)}")
-    st.sidebar.info(
-        f"📊 Всего объектов на карте:{len(df[df['category_id'].isin(selected_categories)]) if selected_categories else len(df)}"
-    )
 
     if st.sidebar.button("🚀 Построить маршрут", type="primary", use_container_width=True):
         if not selected_categories:
@@ -142,7 +151,7 @@ def main():  # noqa: C901
     with col1:
         st.subheader("🗺️ Интерактивная карта достопримечательностей")
         st.markdown(
-            "**💡 Инструкция:** Кликните на карте, чтобы установить точку старта. Выбранные категории отображаются сразу."
+            "**💡 Подсказка:** Кликните один раз на карте, чтобы установить собственную точку старта. Выбранные категории отображаются сразу."
         )
 
         map_obj = create_interactive_map(
@@ -254,24 +263,6 @@ def main():  # noqa: C901
                 mime="text/plain",
                 use_container_width=True,
             )
-        else:
-            st.info("👆 Настройте параметры и нажмите 'Построить маршрут' в сайдбаре")
-
-        st.subheader("🎯 Выбранные категории")
-        if selected_categories:
-            for cat_id in selected_categories:
-                cat_name = categories.get(cat_id, f"Категория {cat_id}")
-                count = len(df[df["category_id"] == cat_id])
-                st.write(f"- {cat_name} ({count} объектов)")
-        else:
-            st.write("Категории не выбраны")
-
-        st.subheader("📊 Статистика")
-        st.write(f"Всего объектов в базе: {len(df)}")
-        st.write(
-            f"Объектов на карте: {len(df[df['category_id'].isin(selected_categories)]) if selected_categories else len(df)}"
-        )
-        st.write(f"Точка старта: {st.session_state.start_position[0]:.6f}, {st.session_state.start_position[1]:.6f}")
 
 
 if __name__ == "__main__":
