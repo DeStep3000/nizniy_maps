@@ -33,7 +33,7 @@ def create_interactive_map(
             start_position,
             popup="Начальная точка",
             tooltip="Начальная точка (кликните для изменения)",
-            icon=folium.Icon(color="green", icon="play", prefix="fa"),
+            icon=folium.Icon(color="black", icon="play", prefix="fa"),
         ).add_to(m)
 
     if route:
@@ -45,7 +45,6 @@ def create_interactive_map(
             nxt = (obj["lat"], obj["lon"])
             try:
                 seg = _fetch_osrm_route(prev, nxt, profile="foot")
-                # чтобы не дублировать стыковочные точки
                 if path_coords and seg:
                     path_coords.extend(seg[1:])
                 else:
