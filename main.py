@@ -100,14 +100,6 @@ def main():  # noqa: C901
         st.session_state.getting_location = True
         st.rerun()
 
-    st.sidebar.info(
-        f"📍 Текущая точка старта:\n{st.session_state.start_position[0]:.6f}, {st.session_state.start_position[1]:.6f}"
-    )
-    st.sidebar.info(f"🎯 Выбрано категорий: {len(selected_categories)}")
-    st.sidebar.info(
-        f"📊 Всего объектов на карте:{len(df[df['category_id'].isin(selected_categories)]) if selected_categories else len(df)}"
-    )
-
     if st.sidebar.button("🚀 Построить маршрут", type="primary", use_container_width=True):
         if not selected_categories:
             st.sidebar.error("Пожалуйста, выберите хотя бы одну категорию!")
@@ -254,24 +246,6 @@ def main():  # noqa: C901
                 mime="text/plain",
                 use_container_width=True,
             )
-        else:
-            st.info("👆 Настройте параметры и нажмите 'Построить маршрут' в сайдбаре")
-
-        st.subheader("🎯 Выбранные категории")
-        if selected_categories:
-            for cat_id in selected_categories:
-                cat_name = categories.get(cat_id, f"Категория {cat_id}")
-                count = len(df[df["category_id"] == cat_id])
-                st.write(f"- {cat_name} ({count} объектов)")
-        else:
-            st.write("Категории не выбраны")
-
-        st.subheader("📊 Статистика")
-        st.write(f"Всего объектов в базе: {len(df)}")
-        st.write(
-            f"Объектов на карте: {len(df[df['category_id'].isin(selected_categories)]) if selected_categories else len(df)}"
-        )
-        st.write(f"Точка старта: {st.session_state.start_position[0]:.6f}, {st.session_state.start_position[1]:.6f}")
 
 
 if __name__ == "__main__":
