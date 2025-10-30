@@ -6,10 +6,10 @@ from streamlit_js_eval import get_geolocation
 
 from src.constants import CATEGORIES as categories
 from src.data_loader import load_data
-from src.llm_utils import generate_route_explanation
+from src.llm_utils import generate_route_explanation_new, generate_enhanced_fallback_explanation
 from src.map_utils import create_interactive_map
 from src.routing import generate_route_description, plan_route
-from src.utils import generate_yandex_maps_url
+from src.utils import generate_yandex_maps_url, apply_chat_style, chat_response
 
 
 def _init_state():
@@ -23,23 +23,49 @@ def _init_state():
         st.session_state.current_route = None
     if "route_explanation" not in st.session_state:
         st.session_state.route_explanation = None
+    if "explanation_generating" not in st.session_state:
+        st.session_state.explanation_generating = False
+    if "used_llm_route_explanation" not in st.session_state:
+        st.session_state.used_llm_route_explanation = False
+    if "getting_location" not in st.session_state:
+        st.session_state.getting_location = False
 
 
 def main():  # noqa: C901
     st.set_page_config(page_title="Нижний Новгород - Планировщик маршрутов", layout="wide")
-    st.title("🏛️ Интерактивный планировщик культурных маршрутов Нижнего Новгорода")
+    st.markdown("""
+        <h1 style='
+            font-size: 48px;
+            color: #ff6b6b;
+            text-align: center;
+            font-family: Arial;
+        '>Интерактивный планировщик культурных маршрутов Нижнего Новгорода</h1>
+    """, unsafe_allow_html=True)
 
     _init_state()
     df = load_data()
 
-    st.sidebar.header("🎯 Настройки маршрута")
-
-    selected_categories = st.sidebar.multiselect(
-        "Выберите интересующие категории:",
-        options=list(categories.keys()),
-        format_func=lambda x: categories[x],
-        default=st.session_state.selected_categories,
+    st.sidebar.markdown(
+        "<h2 style='color: #ff6b6b; font-size: 30px; text-align: center; font-weight: bold;'>Настройки маршрута</h2>",
+        unsafe_allow_html=True
     )
+
+    st.sidebar.subheader("Выберите интересующие категории:")
+    selected_categories = []
+    col1, col2 = st.sidebar.columns(2)
+
+    with col1:
+        for cat_id, cat_name in list(categories.items())[:len(categories) // 2]:
+            is_checked = cat_id in st.session_state.selected_categories
+            if st.checkbox(cat_name, value=is_checked, key=f"cat_{cat_id}"):
+                selected_categories.append(cat_id)
+
+    with col2:
+        for cat_id, cat_name in list(categories.items())[len(categories) // 2:]:
+            is_checked = cat_id in st.session_state.selected_categories
+            if st.checkbox(cat_name, value=is_checked, key=f"cat_{cat_id}_2"):
+                selected_categories.append(cat_id)
+
     st.session_state.selected_categories = selected_categories
 
     total_time = st.sidebar.slider("Время на прогулку (минут):", min_value=30, max_value=240, value=120, step=15)
@@ -50,7 +76,10 @@ def main():  # noqa: C901
 
     use_llm = st.sidebar.checkbox("🤖 Использовать ИИ для объяснения маршрута", value=True)
 
-    st.sidebar.subheader("🚀 Быстрый выбор точки старта")
+    st.sidebar.markdown(
+        "<h2 style='color: #ff6b6b; font-size: 30px; text-align: center; font-weight: bold;'>Выбор точки старта</h2>",
+        unsafe_allow_html=True
+    )
     popular_points = {
         "Кремль": (56.326887, 44.005986),
         "Площадь Минина": (56.327266, 44.006597),
@@ -59,48 +88,50 @@ def main():  # noqa: C901
         "Стрелка": (56.334505, 43.976589),
     }
 
-    selected_point = st.sidebar.selectbox("Выберите популярную точку:", list(popular_points.keys()))
+    selected_point = st.sidebar.selectbox("Выберите популярную точку и нажмите кнопку ниже:", list(popular_points.keys()))
     if st.sidebar.button("Установить точку старта"):
         st.session_state.start_position = popular_points[selected_point]
         st.session_state.route_built = False
+        st.session_state.route_explanation = None
+        st.session_state.explanation_generating = False
         st.rerun()
 
-    if st.sidebar.checkbox("Использовать мое местоположение"):
+    if st.session_state.getting_location:
         loc = get_geolocation()
         if loc and 'coords' in loc:
             st.session_state.start_position = (loc['coords']['latitude'], loc['coords']['longitude'])
             st.session_state.route_built = False
+            st.session_state.route_explanation = None
+            st.session_state.explanation_generating = False
+            st.session_state.getting_location = False
+            st.rerun()
+        elif loc:
+            st.sidebar.error("Не удалось определить координаты местоположения")
+            st.session_state.getting_location = False
 
-    st.sidebar.info(
-        f"📍 Текущая точка старта:\n{st.session_state.start_position[0]:.6f}, {st.session_state.start_position[1]:.6f}"
+    st.sidebar.markdown(
+        "<h2 style='color: #ff6b6b; font-size: 30px; text-align: center; font-weight: bold;'>Использовать геолокацию</h2>",
+        unsafe_allow_html=True
     )
-    st.sidebar.info(f"🎯 Выбрано категорий: {len(selected_categories)}")
-    st.sidebar.info(
-        f"📊 Всего объектов на карте: {len(df[df['category_id'].isin(selected_categories)]) if selected_categories else len(df)}"  # noqa: E501
-    )
+    if st.sidebar.button("📍 Использовать мое местоположение"):
+        st.session_state.getting_location = True
+        st.rerun()
 
     if st.sidebar.button("🚀 Построить маршрут", type="primary", use_container_width=True):
         if not selected_categories:
             st.sidebar.error("Пожалуйста, выберите хотя бы одну категорию!")
         else:
-            st.write("Маршрут строится!")
-            # Спиннеры в UI можно оставить (по желанию),
-            # но спиннер при хэшировании кэша/ресурсов отключён в декораторах cache_*.
-            route = plan_route(st.session_state.start_position, selected_categories, total_time, df, search_radius)
-
+            with st.spinner("Построение маршрута..."):
+                route = plan_route(st.session_state.start_position, selected_categories, total_time, df, search_radius)
             if route:
                 st.session_state.current_route = route
                 st.session_state.route_built = True
+                st.session_state.route_explanation = None
+                st.session_state.explanation_generating = True
 
-                if use_llm:
-                    explanation = generate_route_explanation(
-                        route, selected_categories, total_time, categories, st.session_state.start_position
-                    )
-                    st.session_state.route_explanation = explanation
-                else:
-                    st.session_state.route_explanation = None
 
                 st.sidebar.success(f"✅ Маршрут построен! Посещено объектов: {len(route)}")
+                st.rerun()
             else:
                 st.sidebar.warning(
                     "⚠️ Не удалось построить маршрут. Попробуйте увеличить время или изменить начальную точку."
@@ -111,6 +142,7 @@ def main():  # noqa: C901
             st.session_state.route_built = False
             st.session_state.current_route = None
             st.session_state.route_explanation = None
+            st.session_state.explanation_generating = False
             st.rerun()
 
     col1, col2 = st.columns([2, 1])
@@ -118,37 +150,67 @@ def main():  # noqa: C901
     with col1:
         st.subheader("🗺️ Интерактивная карта достопримечательностей")
         st.markdown(
-            "**💡 Инструкция:** Кликните на карте, чтобы установить точку старта. Выбранные категории отображаются сразу."
+            "**💡 Подсказка:** Кликните один раз на карте, чтобы установить собственную точку старта. Выбранные категории отображаются сразу."
         )
 
-        map_obj = create_interactive_map(
-            df,
-            selected_categories,
-            st.session_state.start_position[0],
-            st.session_state.start_position[1],
-            search_radius,
-            st.session_state.start_position,
-            st.session_state.current_route if st.session_state.route_built else None,
-        )
+        with st.spinner("Строим маршрут..."):
 
-        map_data = st_folium(map_obj, width=700, height=500, returned_objects=["last_clicked"])
+            map_obj = create_interactive_map(
+                df,
+                selected_categories,
+                st.session_state.start_position[0],
+                st.session_state.start_position[1],
+                search_radius,
+                st.session_state.start_position,
+                st.session_state.current_route if st.session_state.route_built else None,
+            )
 
-        if map_data and map_data.get("last_clicked"):
-            clicked_lat = map_data["last_clicked"]["lat"]
-            clicked_lon = map_data["last_clicked"]["lng"]
+            map_data = st_folium(map_obj, width=700, height=500, returned_objects=["last_clicked"])
 
-            if (clicked_lat, clicked_lon) != st.session_state.start_position:
-                st.session_state.start_position = (clicked_lat, clicked_lon)
-                st.session_state.route_built = False
+            if map_data and map_data.get("last_clicked"):
+                clicked_lat = map_data["last_clicked"]["lat"]
+                clicked_lon = map_data["last_clicked"]["lng"]
+
+                if (clicked_lat, clicked_lon) != st.session_state.start_position:
+                    st.session_state.start_position = (clicked_lat, clicked_lon)
+                    st.session_state.route_built = False
+                    st.session_state.route_explanation = None
+                    st.session_state.explanation_generating = False
+                    st.rerun()
+
+        if (st.session_state.route_built and
+                use_llm and
+                st.session_state.explanation_generating and
+                st.session_state.route_explanation is None):
+            with st.spinner("🤖 ИИ генерирует объяснение маршрута..."):
+                explanation = generate_route_explanation_new(
+                    st.session_state.current_route,
+                    selected_categories,
+                    categories
+                )
+                st.session_state.route_explanation = explanation
+                st.session_state.explanation_generating = False
+                st.session_state.used_llm_route_explanation = True
+                st.rerun()
+        elif (st.session_state.route_built and
+                st.session_state.explanation_generating and
+                st.session_state.route_explanation is None):
+            with st.spinner("❓ Создаем объяснение..."):
+                explanation = generate_enhanced_fallback_explanation(
+                        st.session_state.current_route,
+                        selected_categories,
+                        total_time,
+                        categories)
+                st.session_state.route_explanation = explanation
+                st.session_state.explanation_generating = False
+                st.session_state.used_llm_route_explanation = False
                 st.rerun()
 
         if st.session_state.route_built and st.session_state.route_explanation:
-            st.subheader("🤖 Объяснение выбора маршрута")
-            st.info(st.session_state.route_explanation)
+            apply_chat_style()
+            chat_response(st.session_state.route_explanation, st.session_state.used_llm_route_explanation)
 
     with col2:
-        st.subheader("⚡ Быстрые действия")
-
         if st.session_state.route_built and st.session_state.current_route:
             route = st.session_state.current_route
 
@@ -158,7 +220,8 @@ def main():  # noqa: C901
 
             if yandex_url:
                 st.markdown(
-                    f'<a href="{yandex_url}" target="_blank"><button style="background-color: #FF0000; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">🗺️ Открыть маршрут в Яндекс Картах</button></a>',  # noqa: E501
+                    f'<a href="{yandex_url}" target="_blank"><button style="background-color: #FF0000; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">🗺️ Открыть маршрут в Яндекс Картах</button></a>',
+                    # noqa: E501
                     unsafe_allow_html=True,
                 )
                 st.markdown("")
@@ -201,24 +264,6 @@ def main():  # noqa: C901
                 mime="text/plain",
                 use_container_width=True,
             )
-        else:
-            st.info("👆 Настройте параметры и нажмите 'Построить маршрут' в сайдбаре")
-
-        st.subheader("🎯 Выбранные категории")
-        if selected_categories:
-            for cat_id in selected_categories:
-                cat_name = categories.get(cat_id, f"Категория {cat_id}")
-                count = len(df[df["category_id"] == cat_id])
-                st.write(f"- {cat_name} ({count} объектов)")
-        else:
-            st.write("Категории не выбраны")
-
-        st.subheader("📊 Статистика")
-        st.write(f"Всего объектов в базе: {len(df)}")
-        st.write(
-            f"Объектов на карте: {len(df[df['category_id'].isin(selected_categories)]) if selected_categories else len(df)}"
-        )
-        st.write(f"Точка старта: {st.session_state.start_position[0]:.6f}, {st.session_state.start_position[1]:.6f}")
 
 
 if __name__ == "__main__":
