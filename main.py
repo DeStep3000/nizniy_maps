@@ -182,7 +182,7 @@ def main():  # noqa: C901
                 use_llm and
                 st.session_state.explanation_generating and
                 st.session_state.route_explanation is None):
-            with st.spinner("🤖 ИИ генерирует объяснение маршрута..."):
+            with st.spinner("🎨 Создаем красочное описание маршрута с ИИ..."):
                 explanation = generate_route_explanation(
                     st.session_state.current_route,
                     selected_categories,
@@ -197,7 +197,7 @@ def main():  # noqa: C901
         elif (st.session_state.route_built and
                 st.session_state.explanation_generating and
                 st.session_state.route_explanation is None):
-            with st.spinner("❓ Создаем объяснение..."):
+            with st.spinner("❓ Создаем объяснение маршрута..."):
                 explanation = generate_enhanced_fallback_explanation(
                         st.session_state.current_route,
                         selected_categories,
