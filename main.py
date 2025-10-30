@@ -36,7 +36,7 @@ def main():  # noqa: C901
     st.markdown("""
         <h1 style='
             font-size: 48px;
-            color: #000000;
+            color: #ff6b6b;
             text-align: center;
             font-family: Arial;
         '>Интерактивный планировщик культурных маршрутов Нижнего Новгорода</h1>
