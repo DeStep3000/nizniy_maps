@@ -122,8 +122,7 @@ def main():  # noqa: C901
             st.sidebar.error("Пожалуйста, выберите хотя бы одну категорию!")
         else:
             with st.spinner("Построение маршрута..."):
-                route = plan_route(st.session_state.start_position, selected_categories, total_time, df)
-
+                route = plan_route(st.session_state.start_position, selected_categories, total_time, df, search_radius)
             if route:
                 st.session_state.current_route = route
                 st.session_state.route_built = True
