@@ -29,6 +29,8 @@ def _init_state():
         st.session_state.used_llm_route_explanation = False
     if "getting_location" not in st.session_state:
         st.session_state.getting_location = False
+    if "updating_map" not in st.session_state:
+        st.session_state.updating_map = False
 
 
 def main():  # noqa: C901
@@ -128,8 +130,6 @@ def main():  # noqa: C901
                 st.session_state.route_built = True
                 st.session_state.route_explanation = None
                 st.session_state.explanation_generating = True
-
-
                 st.sidebar.success(f"✅ Маршрут построен! Посещено объектов: {len(route)}")
                 st.rerun()
             else:
@@ -145,16 +145,13 @@ def main():  # noqa: C901
             st.session_state.explanation_generating = False
             st.rerun()
 
-    col1, col2 = st.columns([2, 1])
-
-    with col1:
+    if not st.session_state.route_built:
         st.subheader("🗺️ Интерактивная карта достопримечательностей")
         st.markdown(
             "**💡 Подсказка:** Кликните один раз на карте, чтобы установить собственную точку старта. Выбранные категории отображаются сразу."
         )
 
-        with st.spinner("Строим маршрут..."):
-
+        with st.spinner("Загружаем карту..."):
             map_obj = create_interactive_map(
                 df,
                 selected_categories,
@@ -162,10 +159,10 @@ def main():  # noqa: C901
                 st.session_state.start_position[1],
                 search_radius,
                 st.session_state.start_position,
-                st.session_state.current_route if st.session_state.route_built else None,
+                None,
             )
 
-            map_data = st_folium(map_obj, width=700, height=500, returned_objects=["last_clicked"])
+            map_data = st_folium(map_obj, width=None, height=600, returned_objects=["last_clicked"])
 
             if map_data and map_data.get("last_clicked"):
                 clicked_lat = map_data["last_clicked"]["lat"]
@@ -177,95 +174,125 @@ def main():  # noqa: C901
                     st.session_state.route_explanation = None
                     st.session_state.explanation_generating = False
                     st.rerun()
+    else:
+        col1, col2 = st.columns([2, 1])
 
-        if (st.session_state.route_built and
-                use_llm and
-                st.session_state.explanation_generating and
-                st.session_state.route_explanation is None):
-            with st.spinner("🎨 Создаем красочное описание маршрута с ИИ..."):
-                explanation = generate_route_explanation(
-                    st.session_state.current_route,
+        with col1:
+            st.subheader("🗺️ Интерактивная карта достопримечательностей")
+            st.markdown(
+                "**💡 Подсказка:** Кликните один раз на карте, чтобы установить собственную точку старта. Выбранные категории отображаются сразу."
+            )
+
+            with st.spinner("Строим маршрут..."):
+                map_obj = create_interactive_map(
+                    df,
                     selected_categories,
-                    total_time,
-                    categories,
-                    st.session_state.start_position
+                    st.session_state.start_position[0],
+                    st.session_state.start_position[1],
+                    search_radius,
+                    st.session_state.start_position,
+                    st.session_state.current_route
                 )
-                st.session_state.route_explanation = explanation
-                st.session_state.explanation_generating = False
-                st.session_state.used_llm_route_explanation = True
-                st.rerun()
-        elif (st.session_state.route_built and
-                st.session_state.explanation_generating and
-                st.session_state.route_explanation is None):
-            with st.spinner("❓ Создаем объяснение маршрута..."):
-                explanation = generate_enhanced_fallback_explanation(
+
+                map_data = st_folium(map_obj, width=700, height=500, returned_objects=["last_clicked"])
+
+                if map_data and map_data.get("last_clicked"):
+                    clicked_lat = map_data["last_clicked"]["lat"]
+                    clicked_lon = map_data["last_clicked"]["lng"]
+
+                    if (clicked_lat, clicked_lon) != st.session_state.start_position:
+                        st.session_state.start_position = (clicked_lat, clicked_lon)
+                        st.session_state.route_built = False
+                        st.session_state.route_explanation = None
+                        st.session_state.explanation_generating = False
+                        st.rerun()
+
+            if (use_llm and
+                    st.session_state.explanation_generating and
+                    st.session_state.route_explanation is None):
+                with st.spinner("🎨 Создаем красочное описание маршрута с ИИ..."):
+                    explanation = generate_route_explanation(
                         st.session_state.current_route,
                         selected_categories,
                         total_time,
-                        categories)
-                st.session_state.route_explanation = explanation
-                st.session_state.explanation_generating = False
-                st.session_state.used_llm_route_explanation = False
-                st.rerun()
+                        categories,
+                        st.session_state.start_position
+                    )
+                    st.session_state.route_explanation = explanation
+                    st.session_state.explanation_generating = False
+                    st.session_state.used_llm_route_explanation = True
+                    st.rerun()
+            elif (st.session_state.explanation_generating and
+                    st.session_state.route_explanation is None):
+                with st.spinner("❓ Создаем объяснение маршрута..."):
+                    explanation = generate_enhanced_fallback_explanation(
+                            st.session_state.current_route,
+                            selected_categories,
+                            total_time,
+                            categories,
+                            st.session_state.start_position)
+                    st.session_state.route_explanation = explanation
+                    st.session_state.explanation_generating = False
+                    st.session_state.used_llm_route_explanation = False
+                    st.rerun()
 
-        if st.session_state.route_built and st.session_state.route_explanation:
-            apply_chat_style()
-            chat_response(st.session_state.route_explanation, st.session_state.used_llm_route_explanation)
+            if st.session_state.route_explanation:
+                apply_chat_style()
+                chat_response(st.session_state.route_explanation, st.session_state.used_llm_route_explanation)
 
-    with col2:
-        if st.session_state.route_built and st.session_state.current_route:
-            route = st.session_state.current_route
+        with col2:
+            if st.session_state.current_route:
+                route = st.session_state.current_route
 
-            yandex_url = generate_yandex_maps_url(route, st.session_state.start_position)
+                yandex_url = generate_yandex_maps_url(route, st.session_state.start_position)
 
-            st.subheader("📍 Построенный маршрут")
+                st.subheader("📍 Построенный маршрут")
 
-            if yandex_url:
-                st.markdown(
-                    f'<a href="{yandex_url}" target="_blank"><button style="background-color: #FF0000; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">🗺️ Открыть маршрут в Яндекс Картах</button></a>',
-                    # noqa: E501
-                    unsafe_allow_html=True,
+                if yandex_url:
+                    st.markdown(
+                        f'<a href="{yandex_url}" target="_blank"><button style="background-color: #FF0000; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">🗺️ Открыть маршрут в Яндекс Картах</button></a>',
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown("")
+
+                st.subheader("📝 Детали маршрута")
+
+                total_distance = 0
+                total_time_route = 0
+
+                for i, point in enumerate(route, 1):
+                    obj = point["object"]
+
+                    with st.expander(f"{i}. {obj['title']}", expanded=(i == 1)):
+                        st.write(f"**Категория:** {categories.get(obj['category_id'], 'Другое')}")
+                        st.write(f"**Время в пути:** {point['travel_time']:.1f} мин")
+                        st.write(f"**Время на осмотр:** {point['visit_time']} мин")
+                        st.write(f"**Расстояние:** {point['distance']:.0f} м")
+                        st.write(f"**Описание:** {obj['description']}")
+
+                        st.code(f"Координаты: {obj['lat']:.6f}, {obj['lon']:.6f}")
+
+                    total_distance += point["distance"]
+                    total_time_route += point["travel_time"] + point["visit_time"]
+
+                st.subheader("📊 Итоги маршрута")
+                col_stat1, col_stat2, col_stat3 = st.columns(3)
+
+                with col_stat1:
+                    st.metric("Объектов", len(route))
+                with col_stat2:
+                    st.metric("Общее расстояние", f"{total_distance:.0f} м")
+                with col_stat3:
+                    st.metric("Общее время", f"{total_time_route:.1f} мин")
+
+                description = generate_route_description(route)
+                st.download_button(
+                    label="📥 Скачать описание маршрута",
+                    data=description,
+                    file_name=f"маршрут_нижний_новгород_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
+                    mime="text/plain",
+                    use_container_width=True,
                 )
-                st.markdown("")
-
-            st.subheader("📝 Детали маршрута")
-
-            total_distance = 0
-            total_time_route = 0
-
-            for i, point in enumerate(route, 1):
-                obj = point["object"]
-
-                with st.expander(f"{i}. {obj['title']}", expanded=(i == 1)):
-                    st.write(f"**Категория:** {categories.get(obj['category_id'], 'Другое')}")
-                    st.write(f"**Время в пути:** {point['travel_time']:.1f} мин")
-                    st.write(f"**Время на осмотр:** {point['visit_time']} мин")
-                    st.write(f"**Расстояние:** {point['distance']:.0f} м")
-                    st.write(f"**Описание:** {obj['description']}")
-
-                    st.code(f"Координаты: {obj['lat']:.6f}, {obj['lon']:.6f}")
-
-                total_distance += point["distance"]
-                total_time_route += point["travel_time"] + point["visit_time"]
-
-            st.subheader("📊 Итоги маршрута")
-            col_stat1, col_stat2, col_stat3 = st.columns(3)
-
-            with col_stat1:
-                st.metric("Объектов", len(route))
-            with col_stat2:
-                st.metric("Общее расстояние", f"{total_distance:.0f} м")
-            with col_stat3:
-                st.metric("Общее время", f"{total_time_route:.1f} мин")
-
-            description = generate_route_description(route)
-            st.download_button(
-                label="📥 Скачать описание маршрута",
-                data=description,
-                file_name=f"маршрут_нижний_новгород_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
-                mime="text/plain",
-                use_container_width=True,
-            )
 
 
 if __name__ == "__main__":
