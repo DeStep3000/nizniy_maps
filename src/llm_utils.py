@@ -132,6 +132,8 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
     # Генерация через Yandex GPT
     with st.spinner("🎨 Создаем красочное описание маршрута..."):
         explanation = yandex_gpt.generate_explanation(prompt)
+        explanation += "\n\n---\n"
+        explanation += "⚠️ *Ответ сгенерирован нейросетью и может содержать неточности. Рекомендуем проверять актуальность информации.*"
 
     # Если ИИ недоступен, используем улучшенный резервный вариант
     if not explanation:
@@ -141,7 +143,6 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
         )
 
     return explanation
-
 
 def generate_enhanced_fallback_explanation(route, selected_cats_names, total_time, categories_dict, start_position,
                                            descriptions_text=""):
