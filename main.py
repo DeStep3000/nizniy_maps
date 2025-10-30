@@ -34,12 +34,22 @@ def main():  # noqa: C901
 
     st.sidebar.header("🎯 Настройки маршрута")
 
-    selected_categories = st.sidebar.multiselect(
-        "Выберите интересующие категории:",
-        options=list(categories.keys()),
-        format_func=lambda x: categories[x],
-        default=st.session_state.selected_categories,
-    )
+    st.sidebar.subheader("Выберите интересующие категории:")
+    selected_categories = []
+    col1, col2 = st.sidebar.columns(2)
+
+    with col1:
+        for cat_id, cat_name in list(categories.items())[:len(categories) // 2]:
+            is_checked = cat_id in st.session_state.selected_categories
+            if st.checkbox(cat_name, value=is_checked, key=f"cat_{cat_id}"):
+                selected_categories.append(cat_id)
+
+    with col2:
+        for cat_id, cat_name in list(categories.items())[len(categories) // 2:]:
+            is_checked = cat_id in st.session_state.selected_categories
+            if st.checkbox(cat_name, value=is_checked, key=f"cat_{cat_id}_2"):
+                selected_categories.append(cat_id)
+
     st.session_state.selected_categories = selected_categories
 
     total_time = st.sidebar.slider("Время на прогулку (минут):", min_value=30, max_value=240, value=120, step=15)
