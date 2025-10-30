@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-import json
 
 
 class YandexGPTClient:
@@ -10,22 +9,20 @@ class YandexGPTClient:
     def generate_explanation(self, prompt, temperature=0.5, max_tokens=400):  # Увеличили для красочных описаний
         """Генерация текста через Yandex GPT"""
         try:
-            api_key = st.secrets.get("YANDEX_API_KEY")
-            folder_id = st.secrets.get("YANDEX_FOLDER_ID")
 
-            if not api_key or not folder_id:
+            if not YANDEXGPT_API_KEY or not YANDEXGPT_FOLDER_ID:
                 return None
 
             headers = {
-                "Authorization": f"Api-Key {api_key}",
+                "Authorization": f"Api-Key {YANDEXGPT_API_KEY}",
                 "Content-Type": "application/json"
             }
 
             payload = {
-                "modelUri": f"gpt://{folder_id}/yandexgpt-lite",
+                "modelUri": f"gpt://{YANDEXGPT_FOLDER_ID}/yandexgpt-lite",
                 "completionOptions": {
                     "stream": False,
-                    "temperature": temperature,  # Увеличили для креативности
+                    "temperature": temperature,
                     "maxTokens": max_tokens
                 },
                 "messages": [
@@ -65,12 +62,11 @@ class YandexGPTClient:
             return None
 
 
-# Создаем клиент
-yandex_gpt = YandexGPTClient()
-
 
 def generate_route_explanation(route, selected_categories, total_time, categories_dict, start_position):
     """Основная функция генерации красочного описания маршрута"""
+    # Создаем клиент
+    yandex_gpt = YandexGPTClient()
     if not route:
         return "Маршрут не содержит объектов."
 
@@ -130,10 +126,7 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
 """
 
     # Генерация через Yandex GPT
-    with st.spinner("🎨 Создаем красочное описание маршрута..."):
-        explanation = yandex_gpt.generate_explanation(prompt)
-        explanation += "\n\n---\n"
-        explanation += "⚠️ *Ответ сгенерирован нейросетью и может содержать неточности. Рекомендуем проверять актуальность информации.*"
+    explanation = yandex_gpt.generate_explanation(prompt)
 
     # Если ИИ недоступен, используем улучшенный резервный вариант
     if not explanation:
