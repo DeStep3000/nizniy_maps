@@ -27,7 +27,8 @@ services:
       - PYTHONUNBUFFERED=1
       - TZ=Europe/Moscow
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/locations_db
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - YANDEXGPT_API_KEY=${YANDEXGPT_API_KEY}
+      - YANDEXGPT_FOLDER_ID=${YANDEXGPT_FOLDER_ID}
     depends_on:
       - postgres
     command: >
