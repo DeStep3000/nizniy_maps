@@ -26,4 +26,18 @@ CATEGORY_COLORS = {
     12: "lightgray",
 }
 
+CATEGORY_TIME = {
+    1: 10,
+    2: 30,
+    3: 10,
+    4: 30,
+    5: 10,
+    6: 40,
+    7: 40,
+    8: 40,
+    10: 10,
+    11: 10,
+    12: 40,
+}
+
 FILE_PATH = "data_/cultural_objects_mnn.xlsx"
