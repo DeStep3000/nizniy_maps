@@ -153,7 +153,6 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
     # Основная генерация через нейросеть
     explanation = yandex_gpt.generate_explanation(prompt)
 
-
     # Резервный вариант при недоступности нейросети
     if not explanation:
         st.warning(
@@ -184,6 +183,11 @@ def generate_enhanced_fallback_explanation(route, selected_cats_names, total_tim
     """
     if not route:
         return "Маршрут не содержит объектов."
+
+    if selected_cats_names and isinstance(selected_cats_names[0], int):
+        selected_cats_names = [
+            str(categories_dict.get(cat_id, cat_id)) for cat_id in selected_cats_names
+        ]
 
     # Анализ распределения категорий в маршруте
     category_counts = {}
