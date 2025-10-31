@@ -11,11 +11,8 @@ source .venv/Scripts/activate
 pip install --no-cache-dir --upgrade pip
 pip install --no-cache-dir uv
 
-# 4. Установка PyTorch CPU-only
-uv pip install "torch==2.9.0" --index-url https://download.pytorch.org/whl/cpu
-
-# 5. Установка остальных зависимостей
-uv pip install --no-cache-dir -r requirements.txt
+# 4. Установка зависимостей из pyproject.toml (использует uv.lock)
+uv sync
 
 echo "Установка завершена. Активируйте окружение командой:"
-echo "source .venv/bin/activate"
+echo "source .venv/Scripts/activate"
