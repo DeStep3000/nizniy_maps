@@ -13,6 +13,8 @@ from src.db.models import Base, Location
 
 load_dotenv()
 
+def _norm(s: Optional[str]) -> str:
+    return "" if s is None else " ".join(str(s).strip().lower().split())
 
 def _pick_sheet(file_path: str, sheet_name: Optional[str | int]) -> str | int:
     """
@@ -101,6 +103,19 @@ def create_indexes(session):
         """
         )
     )
+    session.execute(
+        text(
+                       """
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_locations_title_addr_xy6
+            ON locations (
+                lower(coalesce(title,'')),
+                lower(coalesce(address,'')),
+                round(CAST(ST_Y(coordinate) AS numeric), 6),
+                round(CAST(ST_X(coordinate) AS numeric), 6)
+            )
+            """
+            )
+        )
 
 
 def import_from_excel(file_path: str, sheet_name: str | int | None = None):
@@ -129,6 +144,25 @@ def import_from_excel(file_path: str, sheet_name: str | int | None = None):
     inserted, skipped, with_geom = 0, 0, 0
 
     with SessionLocal() as session:
+        has_any = session.execute(text("SELECT 1 FROM locations LIMIT 1")).first() is not None
+        if has_any:
+            print("[import] В таблице уже есть данные — импорт пропущен (одноразовая загрузка).")
+            return
+
+        sheet_to_use = _pick_sheet(file_path, sheet_name)
+        print(f"[import] читаем Excel: {file_path}, лист: {sheet_to_use}")
+        df = pd.read_excel(file_path, sheet_name=sheet_to_use)
+
+        df.columns = [str(c).strip().lower() for c in df.columns]
+
+        required = ["title", "category_id"]
+
+        for col in required:
+            if col not in df.columns:
+                print(f"В Excel не найден обязательный столбец: {col}")
+                sys.exit(1)
+
+        inserted, skipped, with_geom = 0, 0, 0
         for _, row in df.iterrows():
             rowd = row.to_dict()
 
