@@ -1,8 +1,8 @@
 import pandas as pd
 import random
 from geopy.distance import geodesic
-from constants import CATEGORY_TIME
 
+from src.constants import CATEGORY_TIME
 from src.logger import log_user_action
 
 
