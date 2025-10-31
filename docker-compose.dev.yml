@@ -1,4 +1,17 @@
 services:
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: postgres_db
+    environment:
+      POSTGRES_DB: locations_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: Europe/Moscow
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   app:
     container_name: nizhny_maps_dev
     build:
@@ -13,12 +26,22 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - TZ=Europe/Moscow
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/locations_db
+      - YANDEXGPT_API_KEY=${YANDEXGPT_API_KEY}
+      - YANDEXGPT_FOLDER_ID=${YANDEXGPT_FOLDER_ID}
+    depends_on:
+      - postgres
     command: >
       bash -lc "
         uv pip install --index-url https://download.pytorch.org/whl/cpu torch==2.9.0 &&
         if [ -f requirements.txt ]; then uv pip install --no-cache-dir -r requirements.txt; fi &&
+        echo '⏳ Ждем 10 секунд пока PostgreSQL запустится...' &&
+        sleep 10 &&
+        echo '📊 Запуск выгрузки данных...' &&
+        uv run python src/simple_importer.py data_/cultural_objects_mnn.xlsx &&
         uv run streamlit run main.py --server.port=8501 --server.address=0.0.0.0 --server.runOnSave true
       "
 
 volumes:
+  postgres_data:
   uv_cache:
