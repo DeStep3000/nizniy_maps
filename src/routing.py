@@ -2,6 +2,7 @@ import pandas as pd
 import random
 from geopy.distance import geodesic
 
+from src.constants import CATEGORY_TIME
 from src.logger import log_user_action
 
 
@@ -27,7 +28,7 @@ def calculate_score(object_data, user_categories, current_position, search_radiu
         return 0, 999999, 999999
 
     category_match = 1 if object_data["category_id"] in user_categories else 0
-    visit_time = 20
+    visit_time = CATEGORY_TIME[object_data["category_id"]]
     distance_km = distance / 1000
     score = category_match / (distance_km + 0.1)
 
@@ -49,7 +50,7 @@ def plan_route(start_position, user_categories, total_time_minutes, df, search_r
     route = []
     visited_ids = set()
 
-    while remaining_time > 20:
+    while remaining_time > 20 and len(route) < 5:
         candidates = []
 
         for _, obj in df.iterrows():

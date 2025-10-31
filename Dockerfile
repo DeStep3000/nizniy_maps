@@ -11,12 +11,11 @@ RUN uv venv /opt/venv
 ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Устанавливаем torch CPU-only 2.9.0
-RUN uv pip install "torch==2.9.0" --index-url https://download.pytorch.org/whl/cpu
+# Копируем проект и файлы зависимостей
+COPY pyproject.toml uv.lock ./
 
-# Остальные зависимости
-COPY requirements.txt ./
-RUN uv pip install --no-cache-dir -r requirements.txt
+# Устанавливаем все зависимости через uv (использует lock-файл)
+RUN uv sync --frozen
 
 # Код приложения
 COPY . /app

@@ -60,10 +60,11 @@ def create_interactive_map(
         if path_coords:
             folium.PolyLine(
                 path_coords,
-                color="#9b59b6",
-                weight=5,
-                opacity=0.8,
+                color="#8802a3",
+                weight=6,
+                opacity=0.7,
                 popup="Пешеходный маршрут",
+                dash_array='12'
             ).add_to(m)
 
     for _, row in filtered_df.iterrows():
@@ -115,7 +116,7 @@ def create_interactive_map(
             radius=search_radius,
             color="blue",
             fill=True,
-            fillOpacity=0.1,
+            fillOpacity=0.001,
             tooltip=f"Радиус поиска: {search_radius}м",
         ).add_to(m)
 
