@@ -105,12 +105,10 @@
 1) Локальный запуск (предпочтительный):
 - запустите файл install.sh / win_install.sh для linux / windows, пример:
 ```
-uv run win_install.sh
+./win_install.sh
 ```
-- активируйте виртуальное окружение:
-```
-.venv/Scripts/activate
-```
+- активируйте виртуальное окружение по команде, которая будет выведена на экране:
+
 - запустите приложение:
 ```
 uv run streamlit run main.py
@@ -122,7 +120,7 @@ uv run streamlit run main.py
 - Docker и Docker Compose  
 - GNU Make  
 
-Также нужны ключи и параметры окружения:
+Также нужны ключи и параметры окружения в .env:
 - **PostgreSQL:** POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD    
 - **Ключи для ИИ-описаний:** YANDEXGPT_API_KEY, YANDEXGPT_FOLDER_ID  
 
