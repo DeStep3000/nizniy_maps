@@ -35,7 +35,7 @@ def main():  # noqa: C901
     st.set_page_config(page_title="Нижний Новгород - Планировщик маршрутов", layout="wide")
     st.markdown("""
         <h1 style='
-            font-size: 48px;
+            font-size: 3.5vw;
             color: #ff6b6b;
             text-align: center;
             font-family: Arial;
@@ -46,7 +46,7 @@ def main():  # noqa: C901
     df = load_data()
 
     st.sidebar.markdown(
-        "<h2 style='color: #ff6b6b; font-size: 30px; text-align: center; font-weight: bold;'>Настройки маршрута</h2>",
+        "<h2 style='color: #ff6b6b; font-size: 3vw; text-align: center; font-weight: bold;'>Настройки маршрута</h2>",
         unsafe_allow_html=True
     )
 
@@ -77,7 +77,7 @@ def main():  # noqa: C901
     use_llm = st.sidebar.checkbox("🤖 Использовать ИИ для объяснения маршрута", value=True)
 
     st.sidebar.markdown(
-        "<h2 style='color: #ff6b6b; font-size: 30px; text-align: center; font-weight: bold;'>Выбор точки старта</h2>",
+        "<h2 style='color: #ff6b6b; font-size: 3vw; text-align: center; font-weight: bold;'>Выбор точки старта</h2>",
         unsafe_allow_html=True
     )
     popular_points = {
@@ -110,7 +110,7 @@ def main():  # noqa: C901
             st.session_state.getting_location = False
 
     st.sidebar.markdown(
-        "<h2 style='color: #ff6b6b; font-size: 30px; text-align: center; font-weight: bold;'>Использовать геолокацию</h2>",
+        "<h2 style='color: #ff6b6b; font-size: 3vw; text-align: center; font-weight: bold;'>Использовать геолокацию</h2>",
         unsafe_allow_html=True
     )
     if st.sidebar.button("📍 Использовать мое местоположение"):
