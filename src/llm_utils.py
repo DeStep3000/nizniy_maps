@@ -1,5 +1,7 @@
-import streamlit as st
+import os
+
 import requests
+import streamlit as st
 
 
 class YandexGPTClient:
@@ -25,8 +27,8 @@ class YandexGPTClient:
         """
         try:
             # Получение учетных данных из секретов Streamlit
-            api_key = st.secrets.get("YANDEX_API_KEY")
-            folder_id = st.secrets.get("YANDEX_FOLDER_ID")
+            api_key = os.getenv("YANDEXGPT_API_KEY")
+            folder_id = os.getenv("YANDEXGPT_FOLDER_ID")
 
             if not api_key or not folder_id:
                 return None
@@ -57,7 +59,8 @@ class YandexGPTClient:
                 ]
             }
 
-            response = requests.post(self.url, headers=headers, json=payload, timeout=30)
+            response = requests.post(
+                self.url, headers=headers, json=payload, timeout=30)
             response.raise_for_status()
 
             result = response.json()
@@ -94,7 +97,8 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
     total_visit_time = sum(point["visit_time"] for point in route)
     total_distance = sum(point["distance"] for point in route)
 
-    selected_cats_names = [categories_dict.get(cat_id, "Другое") for cat_id in selected_categories]
+    selected_cats_names = [categories_dict.get(
+        cat_id, "Другое") for cat_id in selected_categories]
 
     # Формирование детальных описаний каждого объекта маршрута
     object_descriptions = []
@@ -160,7 +164,8 @@ def generate_route_explanation(route, selected_categories, total_time, categorie
 
     # Резервный вариант при недоступности нейросети
     if not explanation:
-        st.warning("⚠️ Yandex GPT временно недоступен, используем стандартное описание")
+        st.warning(
+            "⚠️ Yandex GPT временно недоступен, используем стандартное описание")
         explanation = generate_enhanced_fallback_explanation(
             route, selected_cats_names, total_time, categories_dict, start_position, descriptions_text
         )
