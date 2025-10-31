@@ -9,8 +9,8 @@ from src.constants import CATEGORY_COLORS as category_colors
 
 @lru_cache(maxsize=512)
 def _fetch_osrm_route(a, b):
-    profile = 'foot'
-    base = "https://router.project-osrm.org/route/v1"
+    profile = 'driving'
+    base = "https://routing.openstreetmap.de/routed-foot/route/v1"
     url = f"{base}/{profile}/{a[1]},{a[0]};{b[1]},{b[0]}?overview=full&geometries=geojson"
     try:
         r = requests.get(url, timeout=6)
@@ -60,10 +60,11 @@ def create_interactive_map(
         if path_coords:
             folium.PolyLine(
                 path_coords,
-                color="#9b59b6",
-                weight=5,
-                opacity=0.8,
+                color="#8802a3",
+                weight=6,
+                opacity=0.7,
                 popup="Пешеходный маршрут",
+                dash_array='12'
             ).add_to(m)
 
     for _, row in filtered_df.iterrows():
@@ -115,7 +116,7 @@ def create_interactive_map(
             radius=search_radius,
             color="blue",
             fill=True,
-            fillOpacity=0.1,
+            fillOpacity=0.001,
             tooltip=f"Радиус поиска: {search_radius}м",
         ).add_to(m)
 

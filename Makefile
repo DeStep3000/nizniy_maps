@@ -24,7 +24,7 @@ build:
 
 # Пересборка и запуск продакшн-версии
 rebuild:
-	docker compose build && docker compose up -d
+	docker compose --env-file /dev/null build && docker compose --env-file /dev/null up -d
 
 # Пересборка и запуск dev-версии
 rebuild_dev:
