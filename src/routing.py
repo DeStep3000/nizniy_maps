@@ -50,7 +50,7 @@ def plan_route(start_position, user_categories, total_time_minutes, df, search_r
     route = []
     visited_ids = set()
 
-    while remaining_time > 20:
+    while remaining_time > 20 and len(route) < 5:
         candidates = []
 
         for _, obj in df.iterrows():
