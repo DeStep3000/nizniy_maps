@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.12"
 
 [[package]]
@@ -401,6 +401,7 @@ dependencies = [
     { name = "geopy" },
     { name = "openpyxl" },
     { name = "psycopg2-binary" },
+    { name = "python-dotenv" },
     { name = "sqlalchemy" },
     { name = "streamlit" },
     { name = "streamlit-folium" },
@@ -414,6 +415,7 @@ requires-dist = [
     { name = "geopy", specifier = ">=2.4.1" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "sqlalchemy", specifier = ">=2.0.44" },
     { name = "streamlit", specifier = ">=1.51.0" },
     { name = "streamlit-folium", specifier = ">=0.25.3" },
