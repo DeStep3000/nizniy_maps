@@ -23,6 +23,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      command: >
+        bash -lc "
+          uv sync --frozen &&
+          echo '⏳ Ждем 10 секунд пока PostgreSQL поднимется...' && sleep 10 &&
+          echo '📊 Первичная загрузка данных...' &&
+          uv run python -m src.simple_importer data_/cultural_objects_mnn.xlsx || echo 'ℹ️ Импорт пропущен'
+        "
     env_file: .env
     ports:
       - "8501:8501"
