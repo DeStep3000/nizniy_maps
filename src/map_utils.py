@@ -61,7 +61,7 @@ def create_interactive_map(
             folium.PolyLine(
                 path_coords,
                 color="#8802a3",
-                weight=4,
+                weight=6,
                 opacity=0.7,
                 popup="Пешеходный маршрут",
                 dash_array='12'
